@@ -498,6 +498,7 @@
     }
 
     input[type="text"],
+    select,
     textarea {
       width: 100%;
       border: 1px solid rgba(247, 210, 122, 0.32);
@@ -515,12 +516,28 @@
       min-height: 44px;
     }
 
+    select {
+      min-height: 44px;
+      appearance: none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, var(--gold) 50%),
+        linear-gradient(135deg, var(--gold) 50%, transparent 50%),
+        linear-gradient(180deg, rgba(255, 248, 216, 0.04), rgba(255, 248, 216, 0.01));
+      background-position:
+        calc(100% - 18px) 18px,
+        calc(100% - 12px) 18px,
+        0 0;
+      background-size: 6px 6px, 6px 6px, 100% 100%;
+      background-repeat: no-repeat;
+    }
+
     textarea {
       min-height: 170px;
       resize: vertical;
     }
 
     input[type="text"]:focus,
+    select:focus,
     textarea:focus {
       border-color: var(--neon-blue);
       box-shadow: 0 0 0 2px rgba(247, 210, 122, 0.18), inset 0 0 18px rgba(247, 210, 122, 0.12);
@@ -1115,6 +1132,19 @@
           </span>
         </button>
         <div class="config-body">
+          <section class="config-section" data-config-section="language">
+            <button class="section-toggle" type="button" aria-expanded="false">
+              <span class="section-title">
+                <strong>Language</strong>
+                <span>Switch interface language</span>
+              </span>
+              <span class="section-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"></path></svg></span>
+            </button>
+            <div class="section-content">
+              <select id="languageSelect" class="language-select" aria-label="Interface language"></select>
+            </div>
+          </section>
+
           <section class="config-section" data-config-section="activity">
             <button class="section-toggle" type="button" aria-expanded="false">
               <span class="section-title">
@@ -1259,17 +1289,7 @@ Heidi</textarea>
   <div class="screen-reader" aria-live="polite" id="liveRegion"></div>
 
   <script src="config/default-config.js"></script>
-  <script>
-    // Optional personal overrides (gitignored). The script tag is added
-    // dynamically so a missing local-config.js does not surface as a 404
-    // in the dev-tools network panel.
-    (function () {
-      var s = document.createElement("script");
-      s.src = "config/local-config.js";
-      s.onerror = function () { /* no local-config.js present, use defaults */ };
-      document.head.appendChild(s);
-    })();
-  </script>
+  <script src="config/local-config.js" onerror="this.remove()"></script>
   <script>
     "use strict";
 
@@ -1289,6 +1309,7 @@ Heidi</textarea>
       themeBackground: $("themeBackground"),
       themeGrid: $("themeGrid"),
       themeClearBtn: $("themeClearBtn"),
+      languageSelect: $("languageSelect"),
       hubButton: $("hubButton"),
       hubText: $("hubText"),
       particleCanvas: $("particleCanvas"),
@@ -1449,6 +1470,8 @@ Heidi</textarea>
       configClose: "Close",
       configOpenAria: "Open settings panel",
       configCloseAria: "Close settings panel",
+      languageSectionTitle: "Language",
+      languageSectionHint: "Switch interface language",
       activitySectionTitle: "Event",
       activitySectionHint: "Set the main page title",
       themeSectionTitle: "Theme",
@@ -1516,21 +1539,95 @@ Heidi</textarea>
 
     const loadedConfig = window.LUCKY_WHEEL_DEFAULT_CONFIG || {};
     const localConfig = window.LUCKY_WHEEL_LOCAL_CONFIG || {};
+    const languageNames = {
+      en: "English",
+      zh: "中文"
+    };
+
+    function isPlainObject(value) {
+      return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+    }
+
+    function hasLanguagePacks(uiTextConfig) {
+      return isPlainObject(uiTextConfig) && Object.values(uiTextConfig).some(isPlainObject);
+    }
+
+    function mergeUiTextPacks(baseText, configs, fallbackLanguage) {
+      const packs = { en: { ...baseText } };
+      configs.forEach((config) => {
+        if (!isPlainObject(config) || !isPlainObject(config.uiText)) return;
+
+        if (hasLanguagePacks(config.uiText)) {
+          Object.entries(config.uiText).forEach(([language, text]) => {
+            if (!isPlainObject(text)) return;
+            packs[language] = {
+              ...baseText,
+              ...(packs[language] || {}),
+              ...text
+            };
+          });
+          return;
+        }
+
+        const language = config.defaultLanguage || fallbackLanguage || "en";
+        packs[language] = {
+          ...baseText,
+          ...(packs[language] || {}),
+          ...config.uiText
+        };
+      });
+      return packs;
+    }
+
+    const configuredLanguage = localConfig.defaultLanguage || loadedConfig.defaultLanguage || "en";
+    const uiTextPacks = mergeUiTextPacks(defaultUiText, [loadedConfig, localConfig], configuredLanguage);
+
     const defaultConfig = {
       activityTitle: "Lucky Draw",
+      defaultLanguage: configuredLanguage,
       defaultTheme: "default",
       schemes: ["Proposal A", "Proposal B"],
       names: ["Alice", "Bob", "Carol", "Dan", "Erin", "Frank", "Grace", "Heidi"],
       ...loadedConfig,
       ...localConfig,
-      uiText: {
-        ...defaultUiText,
-        ...(loadedConfig.uiText || {}),
-        ...(localConfig.uiText || {})
-      }
+      defaultLanguage: configuredLanguage,
+      uiText: uiTextPacks
     };
 
-    const uiText = defaultConfig.uiText;
+    let currentLanguage = getSupportedLanguage(defaultConfig.defaultLanguage);
+    let uiText = uiTextPacks[currentLanguage];
+
+    function getSupportedLanguage(language) {
+      return uiTextPacks[language] ? language : Object.keys(uiTextPacks)[0] || "en";
+    }
+
+    function renderLanguageOptions() {
+      els.languageSelect.innerHTML = "";
+      Object.keys(uiTextPacks).forEach((language) => {
+        const option = document.createElement("option");
+        option.value = language;
+        option.textContent = languageNames[language] || language;
+        els.languageSelect.appendChild(option);
+      });
+      els.languageSelect.value = currentLanguage;
+    }
+
+    function restoreSavedLanguage() {
+      const savedLanguage = localStorage.getItem("luckyWheelLanguage");
+      currentLanguage = getSupportedLanguage(savedLanguage || defaultConfig.defaultLanguage);
+      uiText = uiTextPacks[currentLanguage];
+    }
+
+    function setLanguage(language, options = {}) {
+      currentLanguage = getSupportedLanguage(language);
+      uiText = uiTextPacks[currentLanguage];
+      els.languageSelect.value = currentLanguage;
+      if (options.persist) localStorage.setItem("luckyWheelLanguage", currentLanguage);
+      applyUIText();
+      applyActivityTitle(els.activityTitleInput.value);
+      updateUI();
+      drawWheel();
+    }
 
     function setMessage(text, type = "info") {
       els.message.textContent = text;
@@ -1572,6 +1669,8 @@ Heidi</textarea>
       setText(".stat:nth-child(1) span", uiText.statsTotal);
       setText(".stat:nth-child(2) span", uiText.statsRemaining);
       setText(".stat:nth-child(3) span", uiText.statsDrawn);
+      setText('[data-config-section="language"] .section-title strong', uiText.languageSectionTitle);
+      setText('[data-config-section="language"] .section-title span', uiText.languageSectionHint);
       setText('[data-config-section="activity"] .section-title strong', uiText.activitySectionTitle);
       setText('[data-config-section="activity"] .section-title span', uiText.activitySectionHint);
       setText('[data-config-section="theme"] .section-title strong', uiText.themeSectionTitle);
@@ -1596,6 +1695,7 @@ Heidi</textarea>
       setButtonContent(els.exportBtn, "export", uiText.exportButton);
       setButtonContent(els.shuffleBtn, "shuffle", uiText.shuffleButton);
       setButtonContent(els.clearBtn, "clear", uiText.clearButton);
+      els.languageSelect.setAttribute("aria-label", uiText.languageSectionTitle);
       els.winnerTitle.textContent = uiText.winnerTitle;
       els.winnerKicker.textContent = uiText.winnerKicker;
       els.winnerName.textContent = uiText.winnerPlaceholder;
@@ -1604,7 +1704,6 @@ Heidi</textarea>
       els.hubButton.setAttribute("aria-label", uiText.startButton);
       setHtml("#hubText", lineBreakText(uiText.hubStart));
       document.querySelector(".wheel-stage").setAttribute("aria-label", uiText.wheelAriaLabel);
-      toggleConfigPanel(false);
     }
 
     function applyThemeSkin(theme) {
@@ -3028,6 +3127,7 @@ Heidi</textarea>
         const toggle = section.querySelector(".section-toggle");
         if (toggle) toggle.addEventListener("click", () => toggleConfigSection(section));
       });
+      els.languageSelect.addEventListener("change", (event) => setLanguage(event.target.value, { persist: true }));
       els.activityTitleInput.addEventListener("input", () => applyActivityTitle(els.activityTitleInput.value));
       els.themeClearBtn.addEventListener("click", () => applyTheme(defaultConfig.defaultTheme || "default", { persist: true }));
       els.generateBtn.addEventListener("click", generateWheel);
@@ -3048,7 +3148,7 @@ Heidi</textarea>
       });
       document.addEventListener("keydown", (event) => {
         const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
-        const isTyping = tag === "textarea" || tag === "input";
+        const isTyping = tag === "textarea" || tag === "input" || tag === "select";
         if (event.code === "Space" && !isTyping) {
           event.preventDefault();
           startDraw();
@@ -3069,7 +3169,10 @@ Heidi</textarea>
 
     function init() {
       renderThemeCards();
+      restoreSavedLanguage();
+      renderLanguageOptions();
       applyUIText();
+      toggleConfigPanel(false);
       loadDefaultConfig();
       bindEvents();
       resizeFxCanvases();

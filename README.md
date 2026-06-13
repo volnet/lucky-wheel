@@ -1,6 +1,6 @@
 # Lucky Draw Wheel
 
-A single-file HTML lucky-draw wheel for live events. Drop it on a thumb drive, double-click `index.html`, and you have a self-contained, offline-capable draw machine with a dual-ring spinner, voice announcements, confetti and side-fireworks.
+A single-file HTML lucky-draw wheel for live events. Drop it on a thumb drive, double-click `index.html`, and you have a self-contained, offline-capable draw machine with a dual-ring spinner, bilingual interface text, voice announcements, confetti and side-fireworks.
 
 Built for stage presentations, raffles, classroom picks, team standups, ice-breakers, and any moment that needs a fair, visible, and dramatic random pick.
 
@@ -10,9 +10,10 @@ Built for stage presentations, raffles, classroom picks, team standups, ice-brea
 - **Offline by default.** No CDN, no network calls, no telemetry. Web Audio synthesizes every sound effect on the fly.
 - **Dual-ring wheel.** Inner ring spins clockwise through candidates; outer ring spins counter-clockwise through proposals. Add one proposal and the outer ring auto-hides.
 - **5–200 candidates.** Bounded by a single validator that tells you what to fix.
-- **Anti-duplicate.** Already-drawn candidates are dimmed and struck through; if the wheel lands on one, it auto re-spins.
+- **Anti-duplicate.** Already-drawn candidates stay visible as dimmed completed segments; if the wheel lands on one, it auto re-spins.
 - **Live status.** Total / Remaining / Drawn counters, a drawn-names list and a per-draw history with timestamps.
 - **Theme system.** Six built-in themes, each with its own background image and color skin. Theme choice is persisted to `localStorage`.
+- **Bilingual UI.** English and Chinese language packs are built in. The language selector is available in the settings panel and can be extended for other locales.
 - **Browser TTS.** Announces the winner through the OS speech synthesizer (zh-CN voice is used when available, otherwise the system default).
 - **Confetti + side fireworks.** The full-screen celebration runs on its own canvas with no third-party libs.
 - **CSV export.** UTF-8 with BOM, friendly to Excel and Google Sheets.
@@ -23,10 +24,11 @@ Built for stage presentations, raffles, classroom picks, team standups, ice-brea
 
 1. Double-click `index.html`.
 2. Open the **Settings** panel on the right.
-3. Type a list of candidates (one per line; 5 to 200 entries).
-4. Optionally type a list of proposals.
-5. Click **Build Wheel**.
-6. Press <kbd>Space</kbd> or click **Start Draw**.
+3. Choose **English** or **中文** in the **Language** section.
+4. Type a list of candidates (one per line; 5 to 200 entries).
+5. Optionally type a list of proposals.
+6. Click **Build Wheel**.
+7. Press <kbd>Space</kbd> or click **Start Draw**.
 
 ## Controls
 
@@ -42,9 +44,9 @@ Built for stage presentations, raffles, classroom picks, team standups, ice-brea
 
 The round hub in the centre of the wheel is the same trigger as **Start Draw**.
 
-## Personal overrides (recommended)
+## Configure for your event
 
-Personal data — your event title, real candidate names, custom button text — should live in `config/local-config.js`. That file is **gitignored**, so it never leaves your machine. The open-source build never ships your data.
+The committed files should stay generic. Your event title, real candidate names, industry wording, theme choice and any private scenario text should live in `config/local-config.js`. That file is **gitignored**, so it never leaves your machine and does not ship in the open-source version.
 
 ```text
 config/
@@ -53,25 +55,26 @@ config/
 └── local-config.js           # gitignored; your personal overrides
 ```
 
-### Set it up in three steps
+### Local override workflow
 
 1. Copy the template:
    ```bash
    cp config/local-config.example.js config/local-config.js
    ```
 2. Edit the values in `config/local-config.js`. Every field is optional; missing fields fall back to `default-config.js`.
-3. Refresh the page. Local values override defaults; `uiText` keys merge on top of the English defaults baked into `index.html`.
+3. Refresh the page. Local values override defaults; `uiText` language packs merge on top of `config/default-config.js`.
 
 Example `config/local-config.js`:
 
 ```js
 window.LUCKY_WHEEL_LOCAL_CONFIG = {
-  activityTitle: "Q3 Town Hall Raffle",
-  defaultTheme: "black-gold-pk-stage",
+  activityTitle: "2026 Solution Championship",
+  defaultLanguage: "en",
+  defaultTheme: "blue-tech-pk-stage",
   schemes: [
-    "Project Atlas",
-    "Project Beacon",
-    "Project Citadel"
+    "Smart Parking",
+    "Customer Flow Analytics",
+    "Digital Twin"
   ],
   names: [
     "Avery",
@@ -80,9 +83,16 @@ window.LUCKY_WHEEL_LOCAL_CONFIG = {
     // ...
   ],
   uiText: {
-    // Optional: override any key from the English defaultUiText in index.html
-    winnerTitle: "Today's Presenter",
-    winMessageSuffix: "is up!"
+    en: {
+      startButton: "Start Battle",
+      winnerTitle: "Selected Presenter",
+      winnerMessage: "You are selected for the next presentation."
+    },
+    zh: {
+      startButton: "开始比拼",
+      winnerTitle: "荣耀揭晓",
+      winnerMessage: "获得本轮讲解机会"
+    }
   }
 };
 ```
@@ -91,7 +101,7 @@ window.LUCKY_WHEEL_LOCAL_CONFIG = {
 
 | File                       | Purpose                              | Committed? |
 | -------------------------- | ------------------------------------ | ---------- |
-| `default-config.js`        | Neutral demo data shipped to users.  | Yes        |
+| `default-config.js`        | Neutral demo data and language packs shipped to users. | Yes        |
 | `local-config.example.js`  | Schema template for personal config. | Yes        |
 | `local-config.js`          | Your private overrides.              | No         |
 
@@ -104,10 +114,66 @@ This means publishing the repo never exposes your event title, candidate names, 
 | Field           | Type       | Description |
 | --------------- | ---------- | ----------- |
 | `activityTitle` | `string`   | Main page heading and `<title>` text. |
+| `defaultLanguage` | `string` | Default UI language key, such as `en` or `zh`. Users can still switch language in the settings panel. |
 | `defaultTheme`  | `string`   | One of the IDs from `themeCatalog` in `index.html`. Falls back to `default` if unknown. |
 | `schemes`       | `string[]` | One proposal per entry. Joined with `\n` in the textarea. |
 | `names`         | `string[]` | One candidate per entry. Joined with `\n` in the textarea. 5–200 supported. |
-| `uiText`        | `object`   | Optional. Override any key from `defaultUiText` in `index.html` (about 50 keys, see source for the full list). |
+| `uiText`        | `object`   | Optional language packs, for example `{ en: {...}, zh: {...} }`. Override only the labels you need. |
+
+### Language packs
+
+English and Chinese are included by default. Add another language by adding a new key to `uiText` and setting `defaultLanguage` to that key:
+
+```js
+window.LUCKY_WHEEL_LOCAL_CONFIG = {
+  defaultLanguage: "ja",
+  uiText: {
+    ja: {
+      generateButton: "ホイール作成",
+      startButton: "抽選開始",
+      winnerTitle: "当選者"
+    }
+  }
+};
+```
+
+Missing labels fall back to the English defaults, so a partial translation is valid while you iterate.
+
+## Adapt to a theme or industry
+
+Use `local-config.js` for event-specific configuration and keep committed defaults neutral.
+
+1. Choose a visual base with `defaultTheme`.
+2. Set `activityTitle` to the event title shown on stage.
+3. Put your industries, proposals, sessions or presentation topics in `schemes`.
+4. Put candidates in `names`.
+5. Override visible wording in `uiText.en`, `uiText.zh`, or another language pack.
+6. Add a background image under `assets/themes/` when the built-in images do not fit the event.
+
+Example for an AI parking solution event:
+
+```js
+window.LUCKY_WHEEL_LOCAL_CONFIG = {
+  activityTitle: "AI Parking Solution Battle",
+  defaultLanguage: "en",
+  defaultTheme: "smart-parking-pk-arena",
+  schemes: [
+    "Smart Parking Guidance",
+    "Mall Traffic Analytics",
+    "Digital Twin Operations"
+  ],
+  uiText: {
+    en: {
+      schemeSectionTitle: "Solution Tracks",
+      winnerMessage: "You are selected for the next solution presentation."
+    },
+    zh: {
+      schemeSectionTitle: "方案赛道",
+      winnerMessage: "获得本轮方案讲解机会"
+    }
+  }
+};
+```
 
 > **Privacy note:** if your repository's history ever contained personal data, run `git filter-repo` (or BFG) before publishing. The split above only protects the working tree from then on.
 
@@ -131,7 +197,32 @@ The six built-in themes:
 | `blue-tech-pk-stage`        | Blue Tech Stage  | `assets/themes/blue-tech-pk-stage.png` |
 | `mecha-pk-battle`           | Mecha Battle     | `assets/themes/mecha-pk-battle.png`    |
 
-Add your own by dropping a PNG into `assets/themes/` and appending a matching entry to `themeCatalog`. See [assets/themes/README.md](assets/themes/README.md) for the full recipe and a complete `skin` example.
+Add your own by dropping a PNG into `assets/themes/` and appending a matching entry to `themeCatalog` near the top of `index.html`. A theme entry contains:
+
+```js
+{
+  id: "your-industry-stage",
+  name: "Your Industry Stage",
+  url: "assets/themes/your-industry-stage.png",
+  skin: {
+    bgDeep: "#061B4D",
+    bgMid: "#081F57",
+    primary: "#1F6FFF",
+    neon: "#4AA8FF",
+    white: "#EAF4FF",
+    accent: "#FFD86B",
+    accentStrong: "#FFB800",
+    danger: "#FF477E",
+    panelRgb: "6, 27, 77",
+    primaryRgb: "31, 111, 255",
+    neonRgb: "74, 168, 255",
+    accentRgb: "255, 216, 107",
+    palette: ["#0A47FF", "#1F6FFF", "#4AA8FF", "#FFD86B"]
+  }
+}
+```
+
+Keep theme names and committed assets generic. Put private event imagery outside the repo or in a gitignored local branch if it should not be published.
 
 ## Keyboard shortcuts
 
@@ -170,7 +261,6 @@ Files are named `lucky-draw_YYYYMMDD_HHMMSS.csv`.
 │   └── local-config.js              # gitignored, your private overrides
 ├── assets/
 │   └── themes/                      # theme background images
-│       ├── README.md
 │       ├── black-gold-pk-stage.png
 │       ├── blue-tech-pk-stage.png
 │       ├── gold-presentation-duel.png
