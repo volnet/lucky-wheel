@@ -653,6 +653,24 @@
       line-height: 1.4;
     }
 
+    .tools-help {
+      border: 1px solid rgba(247, 210, 122, 0.18);
+      border-radius: 8px;
+      background: rgba(255, 248, 216, 0.05);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+      padding: 9px 10px;
+    }
+
+    .tools-help code {
+      display: block;
+      margin-top: 6px;
+      color: var(--white-glow);
+      white-space: pre-line;
+      word-break: break-word;
+    }
+
     .controls {
       padding: clamp(8px, 0.8vw, 12px);
       display: grid;
@@ -1254,6 +1272,14 @@ Heidi</textarea>
               <div class="file-row">
                 <input id="fileInput" type="file" accept=".txt,.csv,.xlsx,.xls" />
                 <div class="message" id="message">Shortcuts: Space to draw, R to reset.</div>
+                <div class="tools-help">
+                  <span id="importHelpText">Import a .txt or .csv candidate list. One name per line, or separated by commas.</span>
+                  <code id="importExampleText">Alice
+Bob
+Carol
+Dan
+Erin</code>
+                </div>
               </div>
             </div>
           </section>
@@ -1328,6 +1354,8 @@ Heidi</textarea>
       clearBtn: $("clearBtn"),
       fileInput: $("fileInput"),
       message: $("message"),
+      importHelpText: $("importHelpText"),
+      importExampleText: $("importExampleText"),
       totalCount: $("totalCount"),
       remainingCount: $("remainingCount"),
       drawnCount: $("drawnCount"),
@@ -1492,6 +1520,8 @@ Heidi</textarea>
       toolsSectionTitle: "Import & Tips",
       toolsSectionHint: "Keyboard shortcuts and candidate file import",
       shortcutHint: "Shortcuts: Space to draw, R to reset.",
+      importHelp: "Import a .txt or .csv candidate list. One name per line, or separated by commas.",
+      importExample: "Alice\nBob\nCarol\nDan\nErin",
       generateButton: "Build Wheel",
       startButton: "Start Draw",
       resetButton: "Reset All",
@@ -1688,6 +1718,8 @@ Heidi</textarea>
       els.drawnEmpty.textContent = uiText.drawnEmpty;
       els.historyEmpty.textContent = uiText.historyEmpty;
       els.message.textContent = uiText.shortcutHint;
+      els.importHelpText.textContent = uiText.importHelp;
+      els.importExampleText.textContent = uiText.importExample;
       setButtonContent(els.generateBtn, "generate", uiText.generateButton);
       setButtonContent(els.startBtn, "start", uiText.startButton);
       setButtonContent(els.resetBtn, "reset", uiText.resetButton);
