@@ -123,6 +123,26 @@ window.LUCKY_WHEEL_DEFAULT_CONFIG = {
       }
     },
     {
+      id: "ai-traffic",
+      name: "AI Traffic",
+      url: "assets/themes/ai-traffic.png",
+      skin: {
+        bgDeep: "#020B1C",
+        bgMid: "#071D42",
+        primary: "#087BFF",
+        neon: "#20BBFF",
+        white: "#F4F8FF",
+        accent: "#F2C66D",
+        accentStrong: "#D99A2B",
+        danger: "#FF476F",
+        panelRgb: "2, 11, 28",
+        primaryRgb: "8, 123, 255",
+        neonRgb: "32, 187, 255",
+        accentRgb: "242, 198, 109",
+        palette: ["#087BFF", "#20BBFF", "#0A47D9", "#F2C66D", "#D99A2B", "#071D42", "#5ED7FF", "#FFF1C7", "#114E9E", "#F4F8FF"]
+      }
+    },
+    {
       id: "mecha-pk-battle",
       name: "Mecha Battle",
       url: "assets/themes/mecha-pk-battle.png",

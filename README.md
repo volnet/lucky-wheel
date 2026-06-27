@@ -192,7 +192,7 @@ The built-in theme catalog lives in `config/default-config.js`. Add event-specif
 - `url` — path to the background image; `null` means no image (use the inline color skin).
 - `skin` — color palette that drives the wheel, buttons, panels, particles and confetti.
 
-The six built-in themes:
+The seven built-in themes:
 
 | ID                          | Display name     | Background image                       |
 | --------------------------- | ---------------- | -------------------------------------- |
@@ -201,6 +201,7 @@ The six built-in themes:
 | `smart-parking-pk-arena`    | Smart Arena      | `assets/themes/smart-parking-pk-arena.png` |
 | `gold-presentation-duel`    | Golden Duel      | `assets/themes/gold-presentation-duel.png` |
 | `blue-tech-pk-stage`        | Blue Tech Stage  | `assets/themes/blue-tech-pk-stage.png` |
+| `ai-traffic`                | AI Traffic       | `assets/themes/ai-traffic.png` |
 | `mecha-pk-battle`           | Mecha Battle     | `assets/themes/mecha-pk-battle.png`    |
 
 Add your own by dropping a PNG into `assets/themes/` and appending a matching entry to `themes` in `config/local-config.js`:
@@ -288,6 +289,7 @@ Files are named `lucky-draw_YYYYMMDD_HHMMSS.csv`.
 │   └── local-config.js              # gitignored, your private overrides
 ├── assets/
 │   └── themes/                      # theme background images
+│       ├── ai-traffic.png
 │       ├── black-gold-pk-stage.png
 │       ├── blue-tech-pk-stage.png
 │       ├── gold-presentation-duel.png
