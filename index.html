@@ -201,8 +201,7 @@
       min-height: 0;
       position: relative;
       display: grid;
-      grid-template-columns: minmax(450px, 1fr) auto;
-      gap: 18px;
+      grid-template-columns: minmax(0, 1fr);
       align-items: stretch;
     }
 
@@ -219,6 +218,7 @@
     .wheel-stage {
       order: 1;
       position: relative;
+      width: 100%;
       min-height: 0;
       padding: clamp(6px, 1vw, 16px);
       display: grid;
@@ -321,7 +321,13 @@
 
     .side-panel {
       order: 2;
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 6;
       width: min(420px, 34vw);
+      max-height: 100%;
       min-height: 0;
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
@@ -332,9 +338,9 @@
     }
 
     .side-panel.collapsed {
+      bottom: auto;
       width: 62px;
       padding: 10px;
-      align-self: start;
     }
 
     .config-toggle {
@@ -995,15 +1001,9 @@
 
     @media (max-width: 1400px) {
       .side-panel:not(.collapsed) {
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
         width: 420px;
         max-width: calc(100vw - 24px);
         min-width: 420px;
-        max-height: 100%;
-        z-index: 6;
       }
     }
 
@@ -1081,13 +1081,15 @@
       .side-panel.collapsed {
         width: 54px;
         padding: 7px;
-        position: absolute;
+        top: auto;
         right: 2px;
         bottom: 2px;
         z-index: 5;
       }
 
       .side-panel:not(.collapsed) {
+        top: 0;
+        bottom: 0;
         width: calc(100vw - 16px);
         max-width: calc(100vw - 16px);
         min-width: 0;
