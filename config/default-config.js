@@ -7,7 +7,8 @@
  *
  *  - activityTitle : string    - main page title and <title> prefix
  *  - defaultLanguage : string  - default UI language key, e.g. "en" or "zh"
- *  - defaultTheme  : string    - one of the IDs in themeCatalog (index.html)
+ *  - defaultTheme  : string    - one of the IDs in themes
+ *  - themes        : object[]  - background images and complete color skins
  *  - schemes       : string[]  - one proposal per entry
  *  - names         : string[]  - one candidate per entry (5-200 supported)
  *  - uiText        : object    - language packs, e.g. { en: {...}, zh: {...} }
@@ -20,6 +21,128 @@ window.LUCKY_WHEEL_DEFAULT_CONFIG = {
   activityTitle: "Lucky Draw",
   defaultLanguage: "en",
   defaultTheme: "default",
+  themes: [
+    {
+      id: "default",
+      name: "Default Stage",
+      url: null,
+      skin: {
+        bgDeep: "#061B4D",
+        bgMid: "#081F57",
+        primary: "#1F6FFF",
+        neon: "#4AA8FF",
+        white: "#EAF4FF",
+        accent: "#FFD86B",
+        accentStrong: "#FFB800",
+        danger: "#FF477E",
+        panelRgb: "6, 27, 77",
+        primaryRgb: "31, 111, 255",
+        neonRgb: "74, 168, 255",
+        accentRgb: "255, 216, 107",
+        palette: ["#0A47FF", "#1F6FFF", "#4AA8FF", "#123D9D", "#0D2B75", "#2A7BFF", "#6BBEFF", "#FFD86B", "#FFB800", "#EAF4FF"]
+      }
+    },
+    {
+      id: "black-gold-pk-stage",
+      name: "Black Gold Stage",
+      url: "assets/themes/black-gold-pk-stage.png",
+      skin: {
+        bgDeep: "#030303",
+        bgMid: "#14100A",
+        primary: "#B77A20",
+        neon: "#F7D27A",
+        white: "#FFF8DF",
+        accent: "#F7D27A",
+        accentStrong: "#B77A20",
+        danger: "#8F1F2C",
+        panelRgb: "8, 7, 5",
+        primaryRgb: "183, 122, 32",
+        neonRgb: "247, 210, 122",
+        accentRgb: "247, 210, 122",
+        palette: ["#F7D27A", "#16110A", "#B77A20", "#FFF2B8", "#3A2811", "#D6A743", "#080705", "#C89135", "#F3C96A", "#21170B"]
+      }
+    },
+    {
+      id: "smart-parking-pk-arena",
+      name: "Smart Arena",
+      url: "assets/themes/smart-parking-pk-arena.png",
+      skin: {
+        bgDeep: "#041A28",
+        bgMid: "#063A55",
+        primary: "#00B8FF",
+        neon: "#38F2D5",
+        white: "#E9FFFB",
+        accent: "#FFD86B",
+        accentStrong: "#FFB800",
+        danger: "#FF4D7D",
+        panelRgb: "4, 26, 40",
+        primaryRgb: "0, 184, 255",
+        neonRgb: "56, 242, 213",
+        accentRgb: "255, 216, 107",
+        palette: ["#00B8FF", "#38F2D5", "#0A6CFF", "#063A55", "#0BD3A3", "#76FFF0", "#FFD86B", "#0E829A", "#E9FFFB", "#0B4F73"]
+      }
+    },
+    {
+      id: "gold-presentation-duel",
+      name: "Golden Duel",
+      url: "assets/themes/gold-presentation-duel.png",
+      skin: {
+        bgDeep: "#120B03",
+        bgMid: "#2B1805",
+        primary: "#D58B1F",
+        neon: "#FFE08A",
+        white: "#FFF9E6",
+        accent: "#FFD86B",
+        accentStrong: "#FFB800",
+        danger: "#C83D2F",
+        panelRgb: "26, 14, 4",
+        primaryRgb: "213, 139, 31",
+        neonRgb: "255, 224, 138",
+        accentRgb: "255, 216, 107",
+        palette: ["#FFD86B", "#FFB800", "#8A5314", "#FFF2B5", "#2B1805", "#D58B1F", "#6C3E0D", "#FFE08A", "#B87318", "#FFF9E6"]
+      }
+    },
+    {
+      id: "blue-tech-pk-stage",
+      name: "Blue Tech Stage",
+      url: "assets/themes/blue-tech-pk-stage.png",
+      skin: {
+        bgDeep: "#061B4D",
+        bgMid: "#081F57",
+        primary: "#1F6FFF",
+        neon: "#4AA8FF",
+        white: "#EAF4FF",
+        accent: "#FFD86B",
+        accentStrong: "#FFB800",
+        danger: "#FF477E",
+        panelRgb: "6, 27, 77",
+        primaryRgb: "31, 111, 255",
+        neonRgb: "74, 168, 255",
+        accentRgb: "255, 216, 107",
+        palette: ["#0A47FF", "#1F6FFF", "#4AA8FF", "#123D9D", "#0D2B75", "#2A7BFF", "#6BBEFF", "#FFD86B", "#FFB800", "#EAF4FF"]
+      }
+    },
+    {
+      id: "mecha-pk-battle",
+      name: "Mecha Battle",
+      url: "assets/themes/mecha-pk-battle.png",
+      skin: {
+        bgDeep: "#090B14",
+        bgMid: "#18213A",
+        primary: "#2E6BFF",
+        neon: "#00E5FF",
+        white: "#F0F7FF",
+        accent: "#FF4D5E",
+        accentStrong: "#FFB800",
+        danger: "#FF2D55",
+        panelRgb: "9, 11, 20",
+        primaryRgb: "46, 107, 255",
+        neonRgb: "0, 229, 255",
+        accentRgb: "255, 77, 94",
+        palette: ["#2E6BFF", "#00E5FF", "#18213A", "#FF4D5E", "#F0F7FF", "#5C7CFA", "#111827", "#FFB800", "#0EA5E9", "#334155"]
+      }
+    }
+  ],
   schemes: [
     "Proposal A",
     "Proposal B"

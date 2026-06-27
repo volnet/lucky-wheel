@@ -120,7 +120,8 @@ This means publishing the repo never exposes your event title, candidate names, 
 | --------------- | ---------- | ----------- |
 | `activityTitle` | `string`   | Main page heading and `<title>` text. |
 | `defaultLanguage` | `string` | Default UI language key, such as `en` or `zh`. Users can still switch language in the settings panel. |
-| `defaultTheme`  | `string`   | One of the IDs from `themeCatalog` in `index.html`. Falls back to `default` if unknown. |
+| `defaultTheme`  | `string`   | One of the IDs in `themes`. Falls back to `default` if unknown. |
+| `themes`        | `object[]` | Theme backgrounds and color skins. Local themes append or override committed themes by `id`. |
 | `schemes`       | `string[]` | One proposal per entry. Joined with `\n` in the textarea. |
 | `names`         | `string[]` | One candidate per entry. Joined with `\n` in the textarea. 5–200 supported. |
 | `uiText`        | `object`   | Optional language packs, for example `{ en: {...}, zh: {...} }`. Override only the labels you need. |
@@ -184,7 +185,7 @@ window.LUCKY_WHEEL_LOCAL_CONFIG = {
 
 ## Themes
 
-The theme catalog lives in `themeCatalog` near the top of `index.html`. Each entry has:
+The built-in theme catalog lives in `config/default-config.js`. Add event-specific themes to the `themes` array in `config/local-config.js`; no `index.html` changes are required. Each entry has:
 
 - `id` — the persisted key written to `localStorage`.
 - `name` — display name on the theme card.
@@ -202,32 +203,37 @@ The six built-in themes:
 | `blue-tech-pk-stage`        | Blue Tech Stage  | `assets/themes/blue-tech-pk-stage.png` |
 | `mecha-pk-battle`           | Mecha Battle     | `assets/themes/mecha-pk-battle.png`    |
 
-Add your own by dropping a PNG into `assets/themes/` and appending a matching entry to `themeCatalog` near the top of `index.html`. A theme entry contains:
+Add your own by dropping a PNG into `assets/themes/` and appending a matching entry to `themes` in `config/local-config.js`:
 
 ```js
-{
-  id: "your-industry-stage",
-  name: "Your Industry Stage",
-  url: "assets/themes/your-industry-stage.png",
-  skin: {
-    bgDeep: "#061B4D",
-    bgMid: "#081F57",
-    primary: "#1F6FFF",
-    neon: "#4AA8FF",
-    white: "#EAF4FF",
-    accent: "#FFD86B",
-    accentStrong: "#FFB800",
-    danger: "#FF477E",
-    panelRgb: "6, 27, 77",
-    primaryRgb: "31, 111, 255",
-    neonRgb: "74, 168, 255",
-    accentRgb: "255, 216, 107",
-    palette: ["#0A47FF", "#1F6FFF", "#4AA8FF", "#FFD86B"]
-  }
-}
+window.LUCKY_WHEEL_LOCAL_CONFIG = {
+  defaultTheme: "your-industry-stage",
+  themes: [
+    {
+      id: "your-industry-stage",
+      name: "Your Industry Stage",
+      url: "assets/themes/your-industry-stage.png",
+      skin: {
+        bgDeep: "#061B4D",
+        bgMid: "#081F57",
+        primary: "#1F6FFF",
+        neon: "#4AA8FF",
+        white: "#EAF4FF",
+        accent: "#FFD86B",
+        accentStrong: "#FFB800",
+        danger: "#FF477E",
+        panelRgb: "6, 27, 77",
+        primaryRgb: "31, 111, 255",
+        neonRgb: "74, 168, 255",
+        accentRgb: "255, 216, 107",
+        palette: ["#0A47FF", "#1F6FFF", "#4AA8FF", "#FFD86B"]
+      }
+    }
+  ]
+};
 ```
 
-Keep theme names and committed assets generic. Put private event imagery outside the repo or in a gitignored local branch if it should not be published.
+Themes are merged by `id`. A local theme with a new `id` is appended; a local theme with an existing `id` overrides that theme. Partial `skin` overrides inherit all omitted color fields. Keep private event imagery outside the repo or ignore it with `.gitignore` if it should not be published.
 
 ## Keyboard shortcuts
 
@@ -429,7 +435,8 @@ window.LUCKY_WHEEL_LOCAL_CONFIG = {
 | ---- | ---- | ---- |
 | `activityTitle` | `string` | 页面主标题和浏览器标题。 |
 | `defaultLanguage` | `string` | 默认界面语言，例如 `en` 或 `zh`。用户仍可在界面中切换。 |
-| `defaultTheme` | `string` | 默认主题 ID，来源于 `index.html` 中的 `themeCatalog`。 |
+| `defaultTheme` | `string` | 默认主题 ID，来源于 `themes`。 |
+| `themes` | `object[]` | 主题背景和配色。本地主题会按 `id` 追加或覆盖默认主题。 |
 | `schemes` | `string[]` | 方案、赛道、议题或主题列表。每项对应外圈一个扇区。 |
 | `names` | `string[]` | 候选人名单，支持 5–200 人。 |
 | `uiText` | `object` | 界面文案语言包，例如 `{ en: {...}, zh: {...} }`。只覆盖需要修改的字段即可。 |
@@ -443,7 +450,7 @@ window.LUCKY_WHEEL_LOCAL_CONFIG = {
 3. 用 `schemes` 填入行业方案、赛道、议题或产品模块。
 4. 用 `names` 填入候选人名单。
 5. 用 `uiText.en`、`uiText.zh` 覆盖界面文案。
-6. 如需专属视觉，把背景图放入 `assets/themes/`，再在 `index.html` 的 `themeCatalog` 中登记。
+6. 如需专属视觉，把背景图放入 `assets/themes/`，再在 `config/local-config.js` 的 `themes` 中登记，无需修改 `index.html`。
 
 AI 停车方案场景示例：
 
@@ -472,7 +479,7 @@ window.LUCKY_WHEEL_LOCAL_CONFIG = {
 
 ## 主题扩展
 
-主题列表在 `index.html` 顶部附近的 `themeCatalog` 中。每个主题包含：
+内置主题列表位于 `config/default-config.js`。活动专属主题应配置在 `config/local-config.js` 的 `themes` 数组中，无需修改主程序。每个主题包含：
 
 - `id`：主题唯一标识，会写入 `localStorage`。
 - `name`：界面上显示的主题名。
@@ -482,27 +489,34 @@ window.LUCKY_WHEEL_LOCAL_CONFIG = {
 新增主题示例：
 
 ```js
-{
-  id: "your-industry-stage",
-  name: "Your Industry Stage",
-  url: "assets/themes/your-industry-stage.png",
-  skin: {
-    bgDeep: "#061B4D",
-    bgMid: "#081F57",
-    primary: "#1F6FFF",
-    neon: "#4AA8FF",
-    white: "#EAF4FF",
-    accent: "#FFD86B",
-    accentStrong: "#FFB800",
-    danger: "#FF477E",
-    panelRgb: "6, 27, 77",
-    primaryRgb: "31, 111, 255",
-    neonRgb: "74, 168, 255",
-    accentRgb: "255, 216, 107",
-    palette: ["#0A47FF", "#1F6FFF", "#4AA8FF", "#FFD86B"]
-  }
-}
+window.LUCKY_WHEEL_LOCAL_CONFIG = {
+  defaultTheme: "your-industry-stage",
+  themes: [
+    {
+      id: "your-industry-stage",
+      name: "Your Industry Stage",
+      url: "assets/themes/your-industry-stage.png",
+      skin: {
+        bgDeep: "#061B4D",
+        bgMid: "#081F57",
+        primary: "#1F6FFF",
+        neon: "#4AA8FF",
+        white: "#EAF4FF",
+        accent: "#FFD86B",
+        accentStrong: "#FFB800",
+        danger: "#FF477E",
+        panelRgb: "6, 27, 77",
+        primaryRgb: "31, 111, 255",
+        neonRgb: "74, 168, 255",
+        accentRgb: "255, 216, 107",
+        palette: ["#0A47FF", "#1F6FFF", "#4AA8FF", "#FFD86B"]
+      }
+    }
+  ]
+};
 ```
+
+主题按 `id` 合并：新 `id` 会新增主题，相同 `id` 会覆盖默认主题。只覆盖部分 `skin` 字段时，其余颜色会自动继承原主题。
 
 ## 导出结果
 

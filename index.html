@@ -1425,62 +1425,10 @@ Erin</code>
 
     const segmentIconTypes = ["car", "brain", "rocket", "compass", "target", "gem", "sparkles", "shield", "trophy", "chart"];
 
-    const blueSkin = activeSkin;
-    const themeCatalog = [
-      { id: "default", name: "Default Stage", url: null, skin: blueSkin },
-      {
-        id: "black-gold-pk-stage",
-        name: "Black Gold Stage",
-        url: "assets/themes/black-gold-pk-stage.png",
-        skin: {
-          bgDeep: "#030303", bgMid: "#14100A", primary: "#B77A20", neon: "#F7D27A", white: "#FFF8DF",
-          accent: "#F7D27A", accentStrong: "#B77A20", danger: "#8F1F2C",
-          panelRgb: "8, 7, 5", primaryRgb: "183, 122, 32", neonRgb: "247, 210, 122", accentRgb: "247, 210, 122",
-          palette: ["#F7D27A", "#16110A", "#B77A20", "#FFF2B8", "#3A2811", "#D6A743", "#080705", "#C89135", "#F3C96A", "#21170B"]
-        }
-      },
-      {
-        id: "smart-parking-pk-arena",
-        name: "Smart Arena",
-        url: "assets/themes/smart-parking-pk-arena.png",
-        skin: {
-          bgDeep: "#041A28", bgMid: "#063A55", primary: "#00B8FF", neon: "#38F2D5", white: "#E9FFFB",
-          accent: "#FFD86B", accentStrong: "#FFB800", danger: "#FF4D7D",
-          panelRgb: "4, 26, 40", primaryRgb: "0, 184, 255", neonRgb: "56, 242, 213", accentRgb: "255, 216, 107",
-          palette: ["#00B8FF", "#38F2D5", "#0A6CFF", "#063A55", "#0BD3A3", "#76FFF0", "#FFD86B", "#0E829A", "#E9FFFB", "#0B4F73"]
-        }
-      },
-      {
-        id: "gold-presentation-duel",
-        name: "Golden Duel",
-        url: "assets/themes/gold-presentation-duel.png",
-        skin: {
-          bgDeep: "#120B03", bgMid: "#2B1805", primary: "#D58B1F", neon: "#FFE08A", white: "#FFF9E6",
-          accent: "#FFD86B", accentStrong: "#FFB800", danger: "#C83D2F",
-          panelRgb: "26, 14, 4", primaryRgb: "213, 139, 31", neonRgb: "255, 224, 138", accentRgb: "255, 216, 107",
-          palette: ["#FFD86B", "#FFB800", "#8A5314", "#FFF2B5", "#2B1805", "#D58B1F", "#6C3E0D", "#FFE08A", "#B87318", "#FFF9E6"]
-        }
-      },
-      {
-        id: "blue-tech-pk-stage",
-        name: "Blue Tech Stage",
-        url: "assets/themes/blue-tech-pk-stage.png",
-        skin: blueSkin
-      },
-      {
-        id: "mecha-pk-battle",
-        name: "Mecha Battle",
-        url: "assets/themes/mecha-pk-battle.png",
-        skin: {
-          bgDeep: "#090B14", bgMid: "#18213A", primary: "#2E6BFF", neon: "#00E5FF", white: "#F0F7FF",
-          accent: "#FF4D5E", accentStrong: "#FFB800", danger: "#FF2D55",
-          panelRgb: "9, 11, 20", primaryRgb: "46, 107, 255", neonRgb: "0, 229, 255", accentRgb: "255, 77, 94",
-          palette: ["#2E6BFF", "#00E5FF", "#18213A", "#FF4D5E", "#F0F7FF", "#5C7CFA", "#111827", "#FFB800", "#0EA5E9", "#334155"]
-        }
-      }
-    ];
-
-    const themeMap = Object.fromEntries(themeCatalog.map((theme) => [theme.id, theme]));
+    const fallbackSkin = {
+      ...activeSkin,
+      palette: activeSkin.palette.slice()
+    };
     const canvasFontFamily = '"HarmonyOS Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif';
 
     const defaultUiText = {
@@ -1612,6 +1560,51 @@ Erin</code>
     const configuredLanguage = localConfig.defaultLanguage || loadedConfig.defaultLanguage || "en";
     const uiTextPacks = mergeUiTextPacks(defaultUiText, [loadedConfig, localConfig], configuredLanguage);
 
+    function mergeThemeCatalog(...catalogs) {
+      const themes = [];
+      const themeIndexes = new Map();
+
+      const addTheme = (theme) => {
+        if (!isPlainObject(theme) || typeof theme.id !== "string" || !theme.id.trim()) return;
+        const id = theme.id.trim();
+        const existingIndex = themeIndexes.get(id);
+        const existing = existingIndex === undefined ? null : themes[existingIndex];
+        const mergedSkin = {
+          ...fallbackSkin,
+          ...((existing && existing.skin) || {}),
+          ...(isPlainObject(theme.skin) ? theme.skin : {})
+        };
+        mergedSkin.palette = Array.isArray(mergedSkin.palette) && mergedSkin.palette.length
+          ? mergedSkin.palette.slice()
+          : fallbackSkin.palette.slice();
+
+        const mergedTheme = {
+          ...(existing || {}),
+          ...theme,
+          id,
+          name: theme.name || (existing && existing.name) || id,
+          url: Object.prototype.hasOwnProperty.call(theme, "url") ? theme.url : (existing && existing.url) || null,
+          skin: mergedSkin
+        };
+
+        if (existingIndex === undefined) {
+          themeIndexes.set(id, themes.length);
+          themes.push(mergedTheme);
+        } else {
+          themes[existingIndex] = mergedTheme;
+        }
+      };
+
+      addTheme({ id: "default", name: "Default Stage", url: null, skin: fallbackSkin });
+      catalogs.forEach((catalog) => {
+        if (Array.isArray(catalog)) catalog.forEach(addTheme);
+      });
+      return themes;
+    }
+
+    const themeCatalog = mergeThemeCatalog(loadedConfig.themes, localConfig.themes);
+    const themeMap = Object.fromEntries(themeCatalog.map((theme) => [theme.id, theme]));
+
     const defaultConfig = {
       activityTitle: "Lucky Draw",
       defaultLanguage: configuredLanguage,
@@ -1621,6 +1614,7 @@ Erin</code>
       ...loadedConfig,
       ...localConfig,
       defaultLanguage: configuredLanguage,
+      themes: themeCatalog,
       uiText: uiTextPacks
     };
 
@@ -1739,7 +1733,7 @@ Erin</code>
     }
 
     function applyThemeSkin(theme) {
-      const skin = theme && theme.skin ? theme.skin : blueSkin;
+      const skin = theme && theme.skin ? theme.skin : fallbackSkin;
       activeSkin = skin;
       palette = skin.palette.slice();
       const root = document.documentElement.style;
@@ -1780,40 +1774,42 @@ Erin</code>
       applyActivityTitle(els.activityTitleInput.value);
     }
 
-    function setThemeImage(url, persistValue = "") {
+    function setThemeImage(url) {
       if (!url) {
         document.documentElement.style.setProperty("--active-theme-image", "none");
         document.body.classList.remove("theme-image-on");
-        if (persistValue) localStorage.removeItem("luckyWheelTheme");
-        markActiveTheme("default");
         return;
       }
       document.documentElement.style.setProperty("--active-theme-image", `url("${url}")`);
       document.body.classList.add("theme-image-on");
-      if (persistValue) localStorage.setItem("luckyWheelTheme", persistValue);
     }
 
     function applyTheme(value, options = {}) {
       const requestedTheme = themeMap[value] || themeMap.default;
+      const themeId = requestedTheme.id;
       applyThemeSkin(requestedTheme);
 
-      if (value === "default") {
-        setThemeImage("", options.persist ? "default" : "");
-        setMessage(uiText.themeResetMessage);
+      if (!requestedTheme.url) {
+        setThemeImage("");
+        markActiveTheme(themeId);
+        if (options.persist) localStorage.setItem("luckyWheelTheme", themeId);
+        setMessage(themeId === "default" ? uiText.themeResetMessage : `${uiText.themeSwitchedPrefix}${requestedTheme.name}`, "success");
         return;
       }
 
       const theme = requestedTheme;
-      if (!theme || !theme.url) return;
-
       const img = new Image();
       img.onload = () => {
-        setThemeImage(theme.url, options.persist ? value : "");
-        markActiveTheme(value);
+        setThemeImage(theme.url);
+        markActiveTheme(themeId);
+        if (options.persist) localStorage.setItem("luckyWheelTheme", themeId);
         setMessage(`${uiText.themeSwitchedPrefix}${theme.name}`, "success");
       };
       img.onerror = () => {
-        setThemeImage("", options.persist ? "default" : "");
+        applyThemeSkin(themeMap.default);
+        setThemeImage("");
+        markActiveTheme("default");
+        if (options.persist) localStorage.setItem("luckyWheelTheme", "default");
         setMessage(`${uiText.themeImageMissingPrefix}${theme.url}${uiText.themeImageMissingSuffix}`, "error");
       };
       img.src = `${theme.url}?v=${Date.now()}`;
