@@ -125,6 +125,18 @@ This means publishing the repo never exposes your event title, candidate names, 
 | `schemes`       | `string[]` | One proposal per entry. Joined with `\n` in the textarea. |
 | `names`         | `string[]` | One candidate per entry. Joined with `\n` in the textarea. 5–200 supported. |
 | `uiText`        | `object`   | Optional language packs, for example `{ en: {...}, zh: {...} }`. Override only the labels you need. |
+| `displayOnlyNames` | `string[]` | Names shown on the wheel but excluded from every draw. The wheel displays the union of `names` and this list. |
+| `displayOnlyAsDrawn` | `boolean` | If `true`, display-only names look already selected; if `false`, they look like normal candidates. |
+
+Example:
+
+```js
+window.LUCKY_WHEEL_LOCAL_CONFIG = {
+  names: ["Bob", "Carol", "Dan", "Erin"],
+  displayOnlyNames: ["Alice"],
+  displayOnlyAsDrawn: true
+};
+```
 
 ### Language packs
 

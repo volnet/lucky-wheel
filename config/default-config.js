@@ -11,6 +11,8 @@
  *  - themes        : object[]  - background images and complete color skins
  *  - schemes       : string[]  - one proposal per entry
  *  - names         : string[]  - one candidate per entry (5-200 supported)
+ *  - displayOnlyNames : string[] - shown on the wheel but excluded from draws; merged with names
+ *  - displayOnlyAsDrawn : boolean - render display-only names as already selected
  *  - uiText        : object    - language packs, e.g. { en: {...}, zh: {...} }
  *
  * The defaults below use neutral English demo data so the open-source build
@@ -21,6 +23,8 @@ window.LUCKY_WHEEL_DEFAULT_CONFIG = {
   activityTitle: "Lucky Draw",
   defaultLanguage: "en",
   defaultTheme: "default",
+  displayOnlyNames: [],
+  displayOnlyAsDrawn: false,
   themes: [
     {
       id: "default",
@@ -186,7 +190,6 @@ window.LUCKY_WHEEL_DEFAULT_CONFIG = {
       wheelAriaLabel: "Lucky draw wheel",
       hubStart: "START\nDRAW",
       hubDrawing: "Drawing...",
-      statusReady: "Ready",
       statusSelected: "Selected",
       statusCompleted: "Done",
       configOpen: "Settings",
@@ -208,6 +211,9 @@ window.LUCKY_WHEEL_DEFAULT_CONFIG = {
       schemeSectionHint: "One proposal per line; one proposal hides the outer ring",
       namesSectionTitle: "Candidates",
       namesSectionHint: "One name per line, 5-200 entries",
+      displayOnlySectionTitle: "Display but exclude from draw",
+      displayOnlySectionHint: "Shown on the wheel but never selected",
+      displayOnlyAsDrawnLabel: "Show as already selected",
       drawnSectionTitle: "Drawn",
       drawnWaiting: "Waiting",
       drawnCompletedPrefix: "",
@@ -251,6 +257,7 @@ window.LUCKY_WHEEL_DEFAULT_CONFIG = {
       winMessageSuffix: "is selected.",
       validationMinNames: "Add at least 5 candidates.",
       validationMaxNames: "Up to 200 candidates are supported.",
+      validationNoEligibleNames: "At least one candidate must remain eligible for the draw.",
       validationMinSchemes: "Add at least 1 proposal.",
       validationMaxSchemes: "Up to 200 proposals are supported.",
       emptyWheelTitle: "Build the wheel first",
@@ -261,6 +268,10 @@ window.LUCKY_WHEEL_DEFAULT_CONFIG = {
       fileReadFailed: "File read failed. Please paste the names instead."
     },
     zh: {
+      displayOnlySectionTitle: "展示但不参与抽签",
+      displayOnlySectionHint: "显示在转盘中，但永远不会被抽中",
+      displayOnlyAsDrawnLabel: "显示为已选过",
+      validationNoEligibleNames: "至少需要保留一名可参与抽签的人员。",
       pageTitleSuffix: "抽签大转盘",
       statsTotal: "总人数",
       statsRemaining: "剩余人数",
@@ -268,7 +279,6 @@ window.LUCKY_WHEEL_DEFAULT_CONFIG = {
       wheelAriaLabel: "幸运转盘",
       hubStart: "开始\n抽签",
       hubDrawing: "抽签中...",
-      statusReady: "待抽签",
       statusSelected: "已抽中",
       statusCompleted: "已完成",
       configOpen: "配置",

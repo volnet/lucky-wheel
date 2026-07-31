@@ -542,6 +542,25 @@
       resize: vertical;
     }
 
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px solid rgba(247, 210, 122, 0.24);
+      border-radius: 8px;
+      color: #fff8df;
+      background: rgba(6, 5, 4, 0.5);
+      cursor: pointer;
+    }
+
+    .checkbox-row input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--gold-strong);
+    }
+
     input[type="text"]:focus,
     select:focus,
     textarea:focus {
@@ -1230,6 +1249,23 @@ Heidi</textarea>
             </div>
           </section>
 
+          <section class="config-section" data-config-section="display-only">
+            <button class="section-toggle" type="button" aria-expanded="false">
+              <span class="section-title">
+                <strong>Display but exclude from draw</strong>
+                <span>Shown on the wheel but never selected.</span>
+              </span>
+              <span class="section-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"></path></svg></span>
+            </button>
+            <div class="section-content">
+              <textarea id="displayOnlyInput" spellcheck="false"></textarea>
+              <label class="checkbox-row" for="displayOnlyAsDrawnInput">
+                <input id="displayOnlyAsDrawnInput" type="checkbox" />
+                <span id="displayOnlyAsDrawnLabel">Show as already selected</span>
+              </label>
+            </div>
+          </section>
+
           <section class="config-section" data-config-section="drawn">
             <button class="section-toggle" type="button" aria-expanded="false">
               <span class="section-title">
@@ -1347,6 +1383,9 @@ Erin</code>
       subtitleText: $("subtitleText"),
       schemeInput: $("schemeInput"),
       nameInput: $("nameInput"),
+      displayOnlyInput: $("displayOnlyInput"),
+      displayOnlyAsDrawnInput: $("displayOnlyAsDrawnInput"),
+      displayOnlyAsDrawnLabel: $("displayOnlyAsDrawnLabel"),
       generateBtn: $("generateBtn"),
       startBtn: $("startBtn"),
       resetBtn: $("resetBtn"),
@@ -1382,6 +1421,8 @@ Erin</code>
 
     const state = {
       names: [],
+      displayOnlyNames: new Set(),
+      displayOnlyAsDrawn: false,
       schemes: [],
       drawn: new Set(),
       history: [],
@@ -1441,7 +1482,6 @@ Erin</code>
       wheelAriaLabel: "Lucky wheel",
       hubStart: "START\nDRAW",
       hubDrawing: "Drawing...",
-      statusReady: "Ready",
       statusSelected: "Selected",
       statusCompleted: "Done",
       configOpen: "Settings",
@@ -1459,6 +1499,9 @@ Erin</code>
       schemeSectionHint: "One per line. Outer ring hides if only 1.",
       namesSectionTitle: "Candidates",
       namesSectionHint: "One per line. 5-200 entries.",
+      displayOnlySectionTitle: "Display but exclude from draw",
+      displayOnlySectionHint: "Shown on the wheel but never selected.",
+      displayOnlyAsDrawnLabel: "Show as already selected",
       drawnSectionTitle: "Drawn",
       drawnWaiting: "Waiting",
       drawnCompletedPrefix: "",
@@ -1513,6 +1556,7 @@ Erin</code>
       shuffleDone: "List shuffled and wheel rebuilt.",
       validationMinNames: "Need at least 5 candidates.",
       validationMaxNames: "Maximum 200 candidates.",
+      validationNoEligibleNames: "At least one candidate must remain eligible for the draw.",
       validationMinSchemes: "Add at least one proposal.",
       validationMaxSchemes: "Maximum 200 proposals."
     };
@@ -1705,6 +1749,9 @@ Erin</code>
       setText('[data-config-section="schemes"] .section-title span', uiText.schemeSectionHint);
       setText('[data-config-section="names"] .section-title strong', uiText.namesSectionTitle);
       setText('[data-config-section="names"] .section-title span', uiText.namesSectionHint);
+      setText('[data-config-section="display-only"] .section-title strong', uiText.displayOnlySectionTitle);
+      setText('[data-config-section="display-only"] .section-title span', uiText.displayOnlySectionHint);
+      els.displayOnlyAsDrawnLabel.textContent = uiText.displayOnlyAsDrawnLabel;
       setText('[data-config-section="drawn"] .section-title strong', uiText.drawnSectionTitle);
       setText('[data-config-section="history"] .section-title strong', uiText.historySectionTitle);
       setText('[data-config-section="history"] .section-title span', uiText.historySectionHint);
@@ -1773,6 +1820,10 @@ Erin</code>
       els.nameInput.value = Array.isArray(defaultConfig.names)
         ? defaultConfig.names.join("\n")
         : String(defaultConfig.names || "");
+      els.displayOnlyInput.value = Array.isArray(defaultConfig.displayOnlyNames)
+        ? defaultConfig.displayOnlyNames.join("\n")
+        : String(defaultConfig.displayOnlyNames || "");
+      els.displayOnlyAsDrawnInput.checked = Boolean(defaultConfig.displayOnlyAsDrawn);
       applyActivityTitle(els.activityTitleInput.value);
     }
 
@@ -1891,6 +1942,10 @@ Erin</code>
       return normalizeLineList(raw, 200);
     }
 
+    function getNameKey(name) {
+      return String(name || "").trim().toLocaleLowerCase();
+    }
+
     function normalizeSchemeList(raw) {
       return normalizeLineList(raw, 200);
     }
@@ -1908,20 +1963,33 @@ Erin</code>
     }
 
     function syncInputFromState() {
-      els.nameInput.value = state.names.join("\n");
+      els.nameInput.value = state.names
+        .filter((name) => !state.displayOnlyNames.has(getNameKey(name)))
+        .join("\n");
       els.schemeInput.value = state.schemes.join("\n");
+      els.displayOnlyInput.value = state.names
+        .filter((name) => state.displayOnlyNames.has(getNameKey(name)))
+        .join("\n");
+      els.displayOnlyAsDrawnInput.checked = state.displayOnlyAsDrawn;
     }
 
     function generateWheel() {
-      const names = normalizeNameList(els.nameInput.value);
+      const eligibleNames = normalizeNameList(els.nameInput.value);
+      const displayOnlyNames = normalizeNameList(els.displayOnlyInput.value);
+      const displayOnlyKeys = new Set(displayOnlyNames.map(getNameKey));
+      const names = normalizeNameList([...eligibleNames, ...displayOnlyNames].join("\n"));
       const schemes = normalizeSchemeList(els.schemeInput.value);
       const nameError = validateNames(names);
       const schemeError = validateSchemes(schemes);
-      if (nameError || schemeError) {
-        setMessage(nameError || schemeError, "error");
+      const eligibleCount = names.filter((name) => !displayOnlyKeys.has(getNameKey(name))).length;
+      const displayOnlyError = eligibleCount < 1 ? uiText.validationNoEligibleNames : "";
+      if (nameError || schemeError || displayOnlyError) {
+        setMessage(nameError || schemeError || displayOnlyError, "error");
         return false;
       }
       state.names = names;
+      state.displayOnlyNames = displayOnlyKeys;
+      state.displayOnlyAsDrawn = els.displayOnlyAsDrawnInput.checked;
       state.schemes = schemes;
       applyActivityTitle(els.activityTitleInput.value);
       state.drawn.clear();
@@ -1942,7 +2010,8 @@ Erin</code>
     function updateUI() {
       const total = state.names.length;
       const drawnCount = state.drawn.size;
-      const remaining = Math.max(0, total - drawnCount);
+      const eligibleTotal = state.names.filter((name) => !state.displayOnlyNames.has(getNameKey(name))).length;
+      const remaining = Math.max(0, eligibleTotal - drawnCount);
       els.totalCount.textContent = total;
       els.remainingCount.textContent = remaining;
       els.drawnCount.textContent = drawnCount;
@@ -2007,7 +2076,8 @@ Erin</code>
         const start = i * nameSlice;
         const end = start + nameSlice;
         const name = names[i];
-        const isDrawn = state.drawn.has(name);
+        const isDisplayOnly = state.displayOnlyNames.has(getNameKey(name));
+        const isDrawn = state.drawn.has(name) || (state.displayOnlyAsDrawn && isDisplayOnly);
         const isSelected = i === highlightNameIndex || i === state.selectedNameIndex;
         const base = palette[i % palette.length];
         const next = palette[(i + 2) % palette.length];
@@ -2107,10 +2177,14 @@ Erin</code>
     }
 
     function drawSegmentContent({ ctx, name, iconType, angle, textRadius, slice, count, muted, selected, completed }) {
-      const fontSize = Math.max(16, Math.min(40, 1180 / Math.max(14, count)));
+      const preferredFontSize = Math.max(16, Math.min(40, 1180 / Math.max(14, count)));
       const maxWidth = Math.max(72, textRadius * Math.sin(slice / 2) * 1.68);
-      const display = fitText(ctx, name, maxWidth, fontSize);
-      const status = completed ? `✓ ${uiText.statusCompleted}` : selected ? uiText.statusSelected : uiText.statusReady;
+      const wrappedName = fitWrappedText(ctx, name, maxWidth, preferredFontSize, 9, count > 60 ? 2 : 3);
+      const fontSize = wrappedName.fontSize;
+      const nameLines = wrappedName.lines;
+      const lineHeight = fontSize * 1.06;
+      const textBlockHeight = lineHeight * nameLines.length;
+      const status = completed ? `✓ ${uiText.statusCompleted}` : selected ? uiText.statusSelected : "";
       const statusSize = Math.max(11, fontSize * 0.58);
       const iconSize = Math.max(20, fontSize * 1.08);
 
@@ -2124,7 +2198,7 @@ Erin</code>
       const mainColor = completed ? "rgba(205, 215, 226, 0.66)" : selected ? activeSkin.bgDeep : "#FFFFFF";
       const glow = selected ? hexToRgba(activeSkin.accent, 0.95) : hexToRgba(activeSkin.neon, 0.72);
 
-      drawLucideIcon(ctx, iconType, 0, -fontSize * 1.28, iconSize, mainColor, completed ? 0.55 : 1);
+      drawLucideIcon(ctx, iconType, 0, -textBlockHeight / 2 - iconSize * 0.72, iconSize, mainColor, completed ? 0.55 : 1);
 
       ctx.font = `900 ${fontSize}px ${canvasFontFamily}`;
       ctx.fillStyle = mainColor;
@@ -2132,22 +2206,53 @@ Erin</code>
       ctx.lineWidth = 5;
       ctx.shadowColor = completed ? "transparent" : glow;
       ctx.shadowBlur = completed ? 0 : selected ? 18 : 9;
-      ctx.strokeText(display, 0, 0);
-      ctx.fillText(display, 0, 0);
+      nameLines.forEach((line, index) => {
+        const lineY = (index - (nameLines.length - 1) / 2) * lineHeight;
+        ctx.strokeText(line, 0, lineY);
+        ctx.fillText(line, 0, lineY);
+      });
       ctx.shadowBlur = 0;
 
-      ctx.font = `900 ${statusSize}px ${canvasFontFamily}`;
-      const statusWidth = Math.min(maxWidth, ctx.measureText(status).width + 24);
-      const statusY = fontSize * 1.26;
-      roundRect(ctx, -statusWidth / 2, statusY - statusSize * 1.02, statusWidth, statusSize * 1.95, statusSize * 0.78);
-      ctx.fillStyle = completed ? "rgba(234, 244, 255, 0.18)" : selected ? "rgba(255, 255, 255, 0.92)" : hexToRgba(activeSkin.primary, 0.46);
-      ctx.fill();
-      ctx.strokeStyle = completed ? "rgba(234, 244, 255, 0.42)" : selected ? hexToRgba(activeSkin.accent, 0.86) : "rgba(234, 244, 255, 0.58)";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.fillStyle = completed ? "rgba(220, 228, 238, 0.82)" : selected ? activeSkin.primary : activeSkin.white;
-      ctx.fillText(status, 0, statusY);
+      if (status) {
+        ctx.font = `900 ${statusSize}px ${canvasFontFamily}`;
+        const statusWidth = Math.min(maxWidth, ctx.measureText(status).width + 24);
+        const statusY = textBlockHeight / 2 + statusSize * 1.18;
+        roundRect(ctx, -statusWidth / 2, statusY - statusSize * 1.02, statusWidth, statusSize * 1.95, statusSize * 0.78);
+        ctx.fillStyle = completed ? "rgba(234, 244, 255, 0.18)" : "rgba(255, 255, 255, 0.92)";
+        ctx.fill();
+        ctx.strokeStyle = completed ? "rgba(234, 244, 255, 0.42)" : hexToRgba(activeSkin.accent, 0.86);
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = completed ? "rgba(220, 228, 238, 0.82)" : activeSkin.primary;
+        ctx.fillText(status, 0, statusY);
+      }
       ctx.restore();
+    }
+
+    function fitWrappedText(ctx, text, maxWidth, preferredFontSize, minFontSize, preferredMaxLines) {
+      const characters = Array.from(String(text || ""));
+      let fontSize = preferredFontSize;
+      let lines = [];
+
+      do {
+        ctx.font = `900 ${fontSize}px ${canvasFontFamily}`;
+        lines = [];
+        let line = "";
+        characters.forEach((character) => {
+          const nextLine = line + character;
+          if (line && ctx.measureText(nextLine).width > maxWidth) {
+            lines.push(line);
+            line = character;
+          } else {
+            line = nextLine;
+          }
+        });
+        if (line || !lines.length) lines.push(line);
+        if (lines.length <= preferredMaxLines || fontSize <= minFontSize) break;
+        fontSize -= 1;
+      } while (fontSize >= minFontSize);
+
+      return { fontSize, lines };
     }
 
     function drawEmptyWheel(ctx, radius) {
@@ -2384,7 +2489,7 @@ Erin</code>
     function getAvailableIndexes() {
       return state.names
         .map((name, index) => ({ name, index }))
-        .filter((item) => !state.drawn.has(item.name))
+        .filter((item) => !state.drawn.has(item.name) && !state.displayOnlyNames.has(getNameKey(item.name)))
         .map((item) => item.index);
     }
 
@@ -2475,7 +2580,7 @@ Erin</code>
       if (state.spinSoundStop) state.spinSoundStop();
       playWinSound();
 
-      if (!winner || state.drawn.has(winner)) {
+      if (!winner || state.drawn.has(winner) || state.displayOnlyNames.has(getNameKey(winner))) {
         setMessage(uiText.invalidLanding, "error");
         updateUI();
         drawWheel();
@@ -2580,7 +2685,11 @@ Erin</code>
         state.spinTimeout = 0;
       }
       els.nameInput.value = "";
+      els.displayOnlyInput.value = "";
+      els.displayOnlyAsDrawnInput.checked = false;
       state.names = [];
+      state.displayOnlyNames.clear();
+      state.displayOnlyAsDrawn = false;
       state.drawn.clear();
       state.history = [];
       state.currentWinner = null;
