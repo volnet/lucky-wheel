@@ -14,7 +14,7 @@
  *  - defaultTheme  : string    - one of the IDs in themes
  *  - themes        : object[]  - append themes or override defaults by ID
  *  - schemes       : string[]  - one proposal per entry
- *  - names         : string[]  - one candidate per entry (5-200 supported)
+ *  - names         : string[]  - eligible candidates; the displayed union supports 2-200 names
  *  - displayOnlyNames : string[] - shown on the wheel but excluded from draws; merged with names
  *  - displayOnlyAsDrawn : boolean - render display-only names as already selected
  *  - uiText        : object    - language packs, e.g. { en: {...}, zh: {...} }
@@ -57,7 +57,7 @@ window.LUCKY_WHEEL_LOCAL_CONFIG = {
   // displayOnlyNames: [
   //   "Person One"
   // ],
-  // displayOnlyAsDrawn: false,
+  // displayOnlyAsDrawn: true,
   // uiText: {
   //   // Override only the labels your event needs. Missing keys fall back to
   //   // config/default-config.js and then the baked-in English defaults.

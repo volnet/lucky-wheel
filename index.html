@@ -546,7 +546,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-top: 10px;
+      margin-bottom: 10px;
       padding: 10px 12px;
       border: 1px solid rgba(247, 210, 122, 0.24);
       border-radius: 8px;
@@ -1233,7 +1233,7 @@ Proposal B</textarea>
             <button class="section-toggle" type="button" aria-expanded="false">
               <span class="section-title">
                 <strong>Candidates</strong>
-                <span>One per line. 5-200 entries.</span>
+                <span>One per line. The wheel needs at least 2 displayed names.</span>
               </span>
               <span class="section-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"></path></svg></span>
             </button>
@@ -1258,11 +1258,11 @@ Heidi</textarea>
               <span class="section-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"></path></svg></span>
             </button>
             <div class="section-content">
-              <textarea id="displayOnlyInput" spellcheck="false"></textarea>
               <label class="checkbox-row" for="displayOnlyAsDrawnInput">
-                <input id="displayOnlyAsDrawnInput" type="checkbox" />
+                <input id="displayOnlyAsDrawnInput" type="checkbox" checked />
                 <span id="displayOnlyAsDrawnLabel">Show as already selected</span>
               </label>
+              <textarea id="displayOnlyInput" spellcheck="false"></textarea>
             </div>
           </section>
 
@@ -1422,7 +1422,7 @@ Erin</code>
     const state = {
       names: [],
       displayOnlyNames: new Set(),
-      displayOnlyAsDrawn: false,
+      displayOnlyAsDrawn: true,
       schemes: [],
       drawn: new Set(),
       history: [],
@@ -1498,7 +1498,7 @@ Erin</code>
       schemeSectionTitle: "Proposals",
       schemeSectionHint: "One per line. Outer ring hides if only 1.",
       namesSectionTitle: "Candidates",
-      namesSectionHint: "One per line. 5-200 entries.",
+      namesSectionHint: "One per line. The wheel needs at least 2 displayed names.",
       displayOnlySectionTitle: "Display but exclude from draw",
       displayOnlySectionHint: "Shown on the wheel but never selected.",
       displayOnlyAsDrawnLabel: "Show as already selected",
@@ -1554,7 +1554,7 @@ Erin</code>
       excelNotSupported: "This offline build does not bundle an Excel parser. Save as CSV in Excel, then import.",
       importedCountTemplate: "Imported {count} names.",
       shuffleDone: "List shuffled and wheel rebuilt.",
-      validationMinNames: "Need at least 5 candidates.",
+      validationMinNames: "The wheel needs at least 2 displayed names in total.",
       validationMaxNames: "Maximum 200 candidates.",
       validationNoEligibleNames: "At least one candidate must remain eligible for the draw.",
       validationMinSchemes: "Add at least one proposal.",
@@ -1951,7 +1951,7 @@ Erin</code>
     }
 
     function validateNames(names) {
-      if (names.length < 5) return uiText.validationMinNames;
+      if (names.length < 2) return uiText.validationMinNames;
       if (names.length > 200) return uiText.validationMaxNames;
       return "";
     }
@@ -2019,7 +2019,7 @@ Erin</code>
         ? state.schemes[0]
         : `${state.schemes.length || 0} ${uiText.multipleSchemesSuffix}`;
       els.drawnMini.textContent = drawnCount ? `${uiText.drawnCompletedPrefix} ${drawnCount} ${uiText.drawnCompletedSuffix}` : uiText.drawnWaiting;
-      els.startBtn.disabled = state.isSpinning || total < 5 || remaining === 0;
+      els.startBtn.disabled = state.isSpinning || total < 2 || remaining === 0;
       els.hubButton.disabled = els.startBtn.disabled;
       els.hubText.innerHTML = state.isSpinning ? lineBreakText(uiText.hubDrawing) : lineBreakText(uiText.hubStart);
       els.exportBtn.disabled = state.history.length === 0;
@@ -2686,10 +2686,10 @@ Erin</code>
       }
       els.nameInput.value = "";
       els.displayOnlyInput.value = "";
-      els.displayOnlyAsDrawnInput.checked = false;
+      els.displayOnlyAsDrawnInput.checked = true;
       state.names = [];
       state.displayOnlyNames.clear();
-      state.displayOnlyAsDrawn = false;
+      state.displayOnlyAsDrawn = true;
       state.drawn.clear();
       state.history = [];
       state.currentWinner = null;
@@ -3269,6 +3269,10 @@ Erin</code>
       els.languageSelect.addEventListener("change", (event) => setLanguage(event.target.value, { persist: true }));
       els.activityTitleInput.addEventListener("input", () => applyActivityTitle(els.activityTitleInput.value));
       els.themeClearBtn.addEventListener("click", () => applyTheme(defaultConfig.defaultTheme || "default", { persist: true }));
+      els.displayOnlyAsDrawnInput.addEventListener("change", () => {
+        state.displayOnlyAsDrawn = els.displayOnlyAsDrawnInput.checked;
+        drawWheel();
+      });
       els.generateBtn.addEventListener("click", generateWheel);
       els.startBtn.addEventListener("click", startDraw);
       els.hubButton.addEventListener("click", startDraw);

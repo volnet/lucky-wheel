@@ -10,7 +10,7 @@
  *  - defaultTheme  : string    - one of the IDs in themes
  *  - themes        : object[]  - background images and complete color skins
  *  - schemes       : string[]  - one proposal per entry
- *  - names         : string[]  - one candidate per entry (5-200 supported)
+ *  - names         : string[]  - eligible candidates; the displayed union supports 2-200 names
  *  - displayOnlyNames : string[] - shown on the wheel but excluded from draws; merged with names
  *  - displayOnlyAsDrawn : boolean - render display-only names as already selected
  *  - uiText        : object    - language packs, e.g. { en: {...}, zh: {...} }
@@ -24,7 +24,7 @@ window.LUCKY_WHEEL_DEFAULT_CONFIG = {
   defaultLanguage: "en",
   defaultTheme: "default",
   displayOnlyNames: [],
-  displayOnlyAsDrawn: false,
+  displayOnlyAsDrawn: true,
   themes: [
     {
       id: "default",
@@ -210,7 +210,7 @@ window.LUCKY_WHEEL_DEFAULT_CONFIG = {
       schemeSectionTitle: "Proposals",
       schemeSectionHint: "One proposal per line; one proposal hides the outer ring",
       namesSectionTitle: "Candidates",
-      namesSectionHint: "One name per line, 5-200 entries",
+      namesSectionHint: "One per line; the wheel needs at least 2 displayed names",
       displayOnlySectionTitle: "Display but exclude from draw",
       displayOnlySectionHint: "Shown on the wheel but never selected",
       displayOnlyAsDrawnLabel: "Show as already selected",
@@ -255,7 +255,7 @@ window.LUCKY_WHEEL_DEFAULT_CONFIG = {
       noRemaining: "Everyone has been drawn. Reset to play again.",
       invalidLanding: "Invalid landing. Re-drawing automatically.",
       winMessageSuffix: "is selected.",
-      validationMinNames: "Add at least 5 candidates.",
+      validationMinNames: "The wheel needs at least 2 displayed names in total.",
       validationMaxNames: "Up to 200 candidates are supported.",
       validationNoEligibleNames: "At least one candidate must remain eligible for the draw.",
       validationMinSchemes: "Add at least 1 proposal.",
@@ -299,7 +299,7 @@ window.LUCKY_WHEEL_DEFAULT_CONFIG = {
       schemeSectionTitle: "方案配置",
       schemeSectionHint: "每行一个方案，1 个方案时隐藏外圈",
       namesSectionTitle: "候选人名单",
-      namesSectionHint: "每行一个名字，5~200 人",
+      namesSectionHint: "每行一个名字；转盘展示总人数至少需要 2 人",
       drawnSectionTitle: "已抽中人员",
       drawnWaiting: "等待开始",
       drawnCompletedPrefix: "已完成",
@@ -341,7 +341,7 @@ window.LUCKY_WHEEL_DEFAULT_CONFIG = {
       noRemaining: "所有人员都已抽中过，请先重置全部。",
       invalidLanding: "本次落点异常，已自动重新抽取。",
       winMessageSuffix: "讲解机会！",
-      validationMinNames: "名单至少需要 5 人。",
+      validationMinNames: "候选人与只展示人员的并集至少需要 2 人。",
       validationMaxNames: "名单最多支持 200 人。",
       validationMinSchemes: "请至少配置 1 个方案。",
       validationMaxSchemes: "方案最多支持 200 个。",

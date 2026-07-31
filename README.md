@@ -14,7 +14,7 @@ Built for stage presentations, raffles, classroom picks, team standups, ice-brea
 - **One file, no build.** All HTML, CSS and JavaScript are inlined in `index.html`.
 - **Offline by default.** No CDN, no network calls, no telemetry. Web Audio synthesizes every sound effect on the fly.
 - **Dual-ring wheel.** Inner ring spins clockwise through candidates; outer ring spins counter-clockwise through proposals. Add one proposal and the outer ring auto-hides.
-- **5–200 candidates.** Bounded by a single validator that tells you what to fix.
+- **2–200 displayed names.** The union of eligible and display-only names forms the wheel, with at least one eligible candidate.
 - **Anti-duplicate.** Already-drawn candidates stay visible as dimmed completed segments; if the wheel lands on one, it auto re-spins.
 - **Live status.** Total / Remaining / Drawn counters, a drawn-names list and a per-draw history with timestamps.
 - **Theme system.** Six built-in themes, each with its own background image and color skin. Theme choice is persisted to `localStorage`.
@@ -123,7 +123,7 @@ This means publishing the repo never exposes your event title, candidate names, 
 | `defaultTheme`  | `string`   | One of the IDs in `themes`. Falls back to `default` if unknown. |
 | `themes`        | `object[]` | Theme backgrounds and color skins. Local themes append or override committed themes by `id`. |
 | `schemes`       | `string[]` | One proposal per entry. Joined with `\n` in the textarea. |
-| `names`         | `string[]` | One candidate per entry. Joined with `\n` in the textarea. 5–200 supported. |
+| `names`         | `string[]` | Eligible candidates, one per entry. The union with `displayOnlyNames` supports 2–200 displayed names. |
 | `uiText`        | `object`   | Optional language packs, for example `{ en: {...}, zh: {...} }`. Override only the labels you need. |
 | `displayOnlyNames` | `string[]` | Names shown on the wheel but excluded from every draw. The wheel displays the union of `names` and this list. |
 | `displayOnlyAsDrawn` | `boolean` | If `true`, display-only names look already selected; if `false`, they look like normal candidates. |
@@ -258,7 +258,7 @@ Themes are merged by `id`. A local theme with a new `id` is appended; a local th
 
 ## Importing candidates
 
-The **Import & Tips** section in the settings panel accepts `.txt` or `.csv` files. The parser splits on newlines, commas, tabs, semicolons, and the full-width forms of those separators, then deduplicates case-insensitively and trims whitespace. It expects 5–200 entries; the page surfaces the validator message inline.
+The **Import & Tips** section in the settings panel accepts `.txt` or `.csv` files. The parser splits on newlines, commas, tabs, semicolons, and the full-width forms of those separators, then deduplicates case-insensitively and trims whitespace. The displayed union supports 2–200 names and must contain at least one eligible candidate.
 
 Example `names.txt`:
 
@@ -341,7 +341,7 @@ Lucky Draw Wheel 是一个单文件 HTML 抽签大转盘，适合公司活动、
 - **单文件运行。** HTML、CSS、JavaScript 全部内嵌在 `index.html`。
 - **离线可用。** 无网络请求、无遥测；音效由浏览器 Web Audio 合成。
 - **双圈转盘。** 内圈抽候选人，外圈抽方案；只有一个方案时外圈自动隐藏。
-- **5–200 人名单。** 内置校验和错误提示。
+- **2–200 人展示名单。** 候选人与只展示人员取并集生成转盘，并至少保留一名实际候选人。
 - **防重复。** 已抽中过的人会保留在转盘上，并显示为已完成状态；再次抽中会自动重抽。
 - **主题系统。** 内置多套背景图和配色皮肤，也支持新增行业主题。
 - **中英双语。** 界面内置 English / 中文，并支持扩展更多语言。
@@ -354,7 +354,7 @@ Lucky Draw Wheel 是一个单文件 HTML 抽签大转盘，适合公司活动、
 1. 双击打开 `index.html`。
 2. 打开右侧 **Settings / 配置** 面板。
 3. 在 **Language / 界面语言** 中选择 English 或 中文。
-4. 在候选人名单中输入名字，每行一个，支持 5–200 人。
+4. 在候选人名单中输入名字，每行一个；候选人与只展示人员的并集支持 2–200 人。
 5. 可选：在方案列表中输入方案、赛道、主题或议题。
 6. 点击 **Build Wheel / 生成转盘**。
 7. 点击 **Start Draw / 开始抽签**，或按空格键开始。
@@ -372,7 +372,7 @@ Lucky Draw Wheel 是一个单文件 HTML 抽签大转盘，适合公司活动、
 - 可以每行一个名字。
 - 也可以使用英文逗号、中文逗号、分号、Tab 分隔。
 - 会自动去掉空白并按大小写不敏感去重。
-- 需要 5–200 个候选人。
+- 转盘展示总人数需要 2–200 人，并且至少有一名实际候选人。
 - `.xlsx` / `.xls` 不会直接解析；请先在 Excel 中另存为 CSV，再导入。
 
 示例 `names.txt`：
@@ -452,7 +452,7 @@ window.LUCKY_WHEEL_LOCAL_CONFIG = {
 | `defaultTheme` | `string` | 默认主题 ID，来源于 `themes`。 |
 | `themes` | `object[]` | 主题背景和配色。本地主题会按 `id` 追加或覆盖默认主题。 |
 | `schemes` | `string[]` | 方案、赛道、议题或主题列表。每项对应外圈一个扇区。 |
-| `names` | `string[]` | 候选人名单，支持 5–200 人。 |
+| `names` | `string[]` | 实际候选人名单；与 `displayOnlyNames` 的并集支持 2–200 人。 |
 | `uiText` | `object` | 界面文案语言包，例如 `{ en: {...}, zh: {...} }`。只覆盖需要修改的字段即可。 |
 
 ## 适配行业或主题
