@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Lucky Draw Wheel"
+  },
+  "extensionShortName": {
+    "message": "Lucky Wheel"
+  },
+  "extensionDescription": {
+    "message": "Offline event wheel with configurable draw eligibility. All data stays in your browser."
+  },
+  "openWheel": {
+    "message": "Open Lucky Draw Wheel"
+  }
+}

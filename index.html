@@ -445,12 +445,18 @@
       font-size: 16px;
       color: #fff;
       text-shadow: 0 0 12px rgba(247, 210, 122, 0.48);
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .section-title span {
       color: var(--muted);
       font-size: 12px;
       line-height: 1.3;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .section-arrow {
@@ -558,7 +564,15 @@
     .checkbox-row input {
       width: 18px;
       height: 18px;
+      flex: 0 0 auto;
       accent-color: var(--gold-strong);
+    }
+
+    .checkbox-row span {
+      min-width: 0;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     input[type="text"]:focus,
@@ -693,6 +707,29 @@
       margin-top: 6px;
       color: var(--white-glow);
       white-space: pre-line;
+      word-break: break-word;
+    }
+
+    .config-tools-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .config-tools-actions button {
+      min-width: 0;
+      white-space: normal;
+      font-size: 12px;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .config-body button,
+    .config-body .theme-name,
+    .config-body .tools-help,
+    .config-body .message {
+      white-space: normal;
+      overflow-wrap: anywhere;
       word-break: break-word;
     }
 
@@ -1309,6 +1346,12 @@ Heidi</textarea>
             <div class="section-content">
               <div class="file-row">
                 <input id="fileInput" type="file" accept=".txt,.csv,.xlsx,.xls" />
+                <input id="configFileInput" type="file" accept=".json,application/json" hidden />
+                <div class="config-tools-actions">
+                  <button id="exportConfigBtn" type="button">Export Config</button>
+                  <button id="importConfigBtn" type="button">Import Config</button>
+                  <button id="resetConfigBtn" type="button">Restore Defaults</button>
+                </div>
                 <div class="message" id="message">Shortcuts: Space to draw, R to reset.</div>
                 <div class="tools-help">
                   <span id="importHelpText">Import a .txt or .csv candidate list. One name per line, or separated by commas.</span>
@@ -1394,6 +1437,10 @@ Erin</code>
       shuffleBtn: $("shuffleBtn"),
       clearBtn: $("clearBtn"),
       fileInput: $("fileInput"),
+      configFileInput: $("configFileInput"),
+      exportConfigBtn: $("exportConfigBtn"),
+      importConfigBtn: $("importConfigBtn"),
+      resetConfigBtn: $("resetConfigBtn"),
       message: $("message"),
       importHelpText: $("importHelpText"),
       importExampleText: $("importExampleText"),
@@ -1523,6 +1570,9 @@ Erin</code>
       exportButton: "Export CSV",
       shuffleButton: "Shuffle List",
       clearButton: "Clear List",
+      exportConfigButton: "Export Config",
+      importConfigButton: "Import Config",
+      resetConfigButton: "Restore Defaults",
       winnerKicker: "Winner",
       winnerTitle: "And the Winner Is",
       winnerPlaceholder: "—",
@@ -1557,6 +1607,10 @@ Erin</code>
       validationMinNames: "The wheel needs at least 2 displayed names in total.",
       validationMaxNames: "Maximum 200 candidates.",
       validationNoEligibleNames: "At least one candidate must remain eligible for the draw.",
+      configImported: "Configuration imported and saved locally.",
+      configExported: "Configuration exported. It may contain names; keep it private.",
+      configReset: "Saved configuration removed and defaults restored.",
+      configImportFailed: "Invalid configuration file. Choose a Lucky Draw Wheel JSON export.",
       validationMinSchemes: "Add at least one proposal.",
       validationMaxSchemes: "Maximum 200 proposals."
     };
@@ -1683,7 +1737,7 @@ Erin</code>
     }
 
     function restoreSavedLanguage() {
-      const savedLanguage = localStorage.getItem("luckyWheelLanguage");
+      const savedLanguage = getLocalPreference("luckyWheelLanguage");
       currentLanguage = getSupportedLanguage(savedLanguage || defaultConfig.defaultLanguage);
       uiText = uiTextPacks[currentLanguage];
     }
@@ -1692,11 +1746,12 @@ Erin</code>
       currentLanguage = getSupportedLanguage(language);
       uiText = uiTextPacks[currentLanguage];
       els.languageSelect.value = currentLanguage;
-      if (options.persist) localStorage.setItem("luckyWheelLanguage", currentLanguage);
+      if (options.persist) setLocalPreference("luckyWheelLanguage", currentLanguage);
       applyUIText();
       applyActivityTitle(els.activityTitleInput.value);
       updateUI();
       drawWheel();
+      if (options.persist) void persistWheelConfig();
     }
 
     function setMessage(text, type = "info") {
@@ -1770,6 +1825,9 @@ Erin</code>
       setButtonContent(els.exportBtn, "export", uiText.exportButton);
       setButtonContent(els.shuffleBtn, "shuffle", uiText.shuffleButton);
       setButtonContent(els.clearBtn, "clear", uiText.clearButton);
+      els.exportConfigBtn.textContent = uiText.exportConfigButton;
+      els.importConfigBtn.textContent = uiText.importConfigButton;
+      els.resetConfigBtn.textContent = uiText.resetConfigButton;
       els.languageSelect.setAttribute("aria-label", uiText.languageSectionTitle);
       els.winnerTitle.textContent = uiText.winnerTitle;
       els.winnerKicker.textContent = uiText.winnerKicker;
@@ -1827,6 +1885,152 @@ Erin</code>
       applyActivityTitle(els.activityTitleInput.value);
     }
 
+    const wheelConfigStorageKey = "luckyWheelConfig";
+    const wheelConfigSchemaVersion = 1;
+
+    function isExtensionHosted() {
+      return window.parent !== window;
+    }
+
+    function getLocalPreference(key) {
+      if (isExtensionHosted()) return null;
+      try {
+        return localStorage.getItem(key);
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function setLocalPreference(key, value) {
+      if (isExtensionHosted()) return;
+      try {
+        localStorage.setItem(key, value);
+      } catch (error) {
+        // Preferences remain available for the current session.
+      }
+    }
+
+    function requestExtensionStorage(action, payload = {}) {
+      return new Promise((resolve, reject) => {
+        const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const expectedAction = {
+          "load-config": "config-loaded",
+          "save-config": "config-saved",
+          "clear-config": "config-cleared"
+        }[action];
+        const timeout = window.setTimeout(() => {
+          window.removeEventListener("message", handleResponse);
+          reject(new Error("Extension storage request timed out."));
+        }, 3000);
+
+        function handleResponse(event) {
+          if (
+            event.source !== window.parent
+            || !event.data
+            || event.data.source !== "lucky-wheel-extension"
+            || event.data.action !== expectedAction
+            || event.data.requestId !== requestId
+          ) return;
+          window.clearTimeout(timeout);
+          window.removeEventListener("message", handleResponse);
+          resolve(event.data);
+        }
+
+        window.addEventListener("message", handleResponse);
+        window.parent.postMessage({
+          source: "lucky-wheel",
+          action,
+          requestId,
+          ...payload
+        }, "*");
+      });
+    }
+
+    function sanitizeStoredConfig(value) {
+      if (!isPlainObject(value)) return null;
+      const cleanArray = (items) => Array.isArray(items)
+        ? items.map((item) => String(item).trim()).filter(Boolean).slice(0, 200)
+        : [];
+      return {
+        schemaVersion: wheelConfigSchemaVersion,
+        activityTitle: typeof value.activityTitle === "string" ? value.activityTitle.slice(0, 200) : "",
+        defaultLanguage: typeof value.defaultLanguage === "string" ? value.defaultLanguage.slice(0, 20) : "",
+        defaultTheme: typeof value.defaultTheme === "string" ? value.defaultTheme.slice(0, 100) : "",
+        schemes: cleanArray(value.schemes),
+        names: cleanArray(value.names),
+        displayOnlyNames: cleanArray(value.displayOnlyNames),
+        displayOnlyAsDrawn: value.displayOnlyAsDrawn !== false
+      };
+    }
+
+    function getCurrentThemeId() {
+      const activeTheme = els.themeGrid.querySelector(".theme-card.active");
+      return activeTheme ? activeTheme.dataset.themeId : defaultConfig.defaultTheme || "default";
+    }
+
+    function getWheelConfigSnapshot() {
+      return {
+        schemaVersion: wheelConfigSchemaVersion,
+        activityTitle: els.activityTitleInput.value.trim(),
+        defaultLanguage: currentLanguage,
+        defaultTheme: getCurrentThemeId(),
+        schemes: normalizeSchemeList(els.schemeInput.value),
+        names: normalizeNameList(els.nameInput.value),
+        displayOnlyNames: normalizeNameList(els.displayOnlyInput.value),
+        displayOnlyAsDrawn: els.displayOnlyAsDrawnInput.checked
+      };
+    }
+
+    function applyStoredConfig(config) {
+      const clean = sanitizeStoredConfig(config);
+      if (!clean) return false;
+      if (clean.activityTitle) els.activityTitleInput.value = clean.activityTitle;
+      if (clean.schemes.length) els.schemeInput.value = clean.schemes.join("\n");
+      els.nameInput.value = clean.names.join("\n");
+      els.displayOnlyInput.value = clean.displayOnlyNames.join("\n");
+      els.displayOnlyAsDrawnInput.checked = clean.displayOnlyAsDrawn;
+      if (clean.defaultLanguage) setLanguage(clean.defaultLanguage, { persist: true });
+      return clean;
+    }
+
+    async function loadSavedWheelConfig() {
+      try {
+        if (isExtensionHosted()) {
+          const response = await requestExtensionStorage("load-config");
+          return response.config || null;
+        }
+        const raw = getLocalPreference(wheelConfigStorageKey);
+        return raw ? JSON.parse(raw) : null;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    async function persistWheelConfig() {
+      const config = getWheelConfigSnapshot();
+      try {
+        if (isExtensionHosted()) {
+          await requestExtensionStorage("save-config", { config });
+        } else {
+          setLocalPreference(wheelConfigStorageKey, JSON.stringify(config));
+        }
+      } catch (error) {
+        // The wheel remains fully usable when storage is unavailable.
+      }
+    }
+
+    async function clearSavedWheelConfig() {
+      try {
+        if (isExtensionHosted()) {
+          await requestExtensionStorage("clear-config");
+        } else {
+          localStorage.removeItem(wheelConfigStorageKey);
+        }
+      } catch (error) {
+        // Restoring the visible defaults is still useful if storage is unavailable.
+      }
+    }
+
     function setThemeImage(url) {
       if (!url) {
         document.documentElement.style.setProperty("--active-theme-image", "none");
@@ -1845,8 +2049,9 @@ Erin</code>
       if (!requestedTheme.url) {
         setThemeImage("");
         markActiveTheme(themeId);
-        if (options.persist) localStorage.setItem("luckyWheelTheme", themeId);
+        if (options.persist) setLocalPreference("luckyWheelTheme", themeId);
         setMessage(themeId === "default" ? uiText.themeResetMessage : `${uiText.themeSwitchedPrefix}${requestedTheme.name}`, "success");
+        if (options.persist) void persistWheelConfig();
         return;
       }
 
@@ -1855,21 +2060,23 @@ Erin</code>
       img.onload = () => {
         setThemeImage(theme.url);
         markActiveTheme(themeId);
-        if (options.persist) localStorage.setItem("luckyWheelTheme", themeId);
+        if (options.persist) setLocalPreference("luckyWheelTheme", themeId);
         setMessage(`${uiText.themeSwitchedPrefix}${theme.name}`, "success");
+        if (options.persist) void persistWheelConfig();
       };
       img.onerror = () => {
         applyThemeSkin(themeMap.default);
         setThemeImage("");
         markActiveTheme("default");
-        if (options.persist) localStorage.setItem("luckyWheelTheme", "default");
+        if (options.persist) setLocalPreference("luckyWheelTheme", "default");
         setMessage(`${uiText.themeImageMissingPrefix}${theme.url}${uiText.themeImageMissingSuffix}`, "error");
+        if (options.persist) void persistWheelConfig();
       };
       img.src = `${theme.url}?v=${Date.now()}`;
     }
 
     function restoreSavedTheme() {
-      const savedTheme = localStorage.getItem("luckyWheelTheme");
+      const savedTheme = getLocalPreference("luckyWheelTheme");
       if (savedTheme && savedTheme !== "default" && themeMap[savedTheme]) {
         applyTheme(savedTheme);
       } else if (defaultConfig.defaultTheme && themeMap[defaultConfig.defaultTheme]) {
@@ -2004,6 +2211,7 @@ Erin</code>
       updateUI();
       drawWheel();
       setMessage(`${uiText.generatedPrefix} ${names.length} ${uiText.generatedNamesSuffix}${schemes.length > 1 ? `${uiText.generatedSchemesJoin} ${schemes.length} ${uiText.generatedSchemesSuffix}` : ""}。`, "success");
+      void persistWheelConfig();
       return true;
     }
 
@@ -2701,6 +2909,7 @@ Erin</code>
       updateUI();
       drawWheel();
       setMessage(uiText.clearDone);
+      void persistWheelConfig();
     }
 
     function exportCsv() {
@@ -2723,6 +2932,59 @@ Erin</code>
       a.remove();
       URL.revokeObjectURL(url);
       setMessage(uiText.exportDone, "success");
+    }
+
+    function downloadTextFile(content, filename, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportWheelConfig() {
+      const config = getWheelConfigSnapshot();
+      const json = JSON.stringify(config, null, 2);
+      downloadTextFile(
+        json,
+        `lucky-wheel-config_${formatDateForFile(new Date())}.json`,
+        "application/json;charset=utf-8"
+      );
+      setMessage(uiText.configExported, "success");
+    }
+
+    async function importWheelConfig(file) {
+      if (!file) return;
+      try {
+        const parsed = JSON.parse(await file.text());
+        const config = sanitizeStoredConfig(parsed);
+        if (!config) throw new Error("Invalid configuration");
+        applyStoredConfig(config);
+        if (!generateWheel()) throw new Error("Configuration validation failed");
+        if (config.defaultTheme && themeMap[config.defaultTheme]) {
+          applyTheme(config.defaultTheme, { persist: true });
+        }
+        await persistWheelConfig();
+        setMessage(uiText.configImported, "success");
+      } catch (error) {
+        setMessage(uiText.configImportFailed, "error");
+      } finally {
+        els.configFileInput.value = "";
+      }
+    }
+
+    async function restoreDefaultWheelConfig() {
+      if (state.isSpinning) return;
+      await clearSavedWheelConfig();
+      loadDefaultConfig();
+      setLanguage(defaultConfig.defaultLanguage || "en", { persist: true });
+      generateWheel();
+      applyTheme(defaultConfig.defaultTheme || "default", { persist: true });
+      setMessage(uiText.configReset, "success");
     }
 
     function csvEscape(value) {
@@ -3268,10 +3530,12 @@ Erin</code>
       });
       els.languageSelect.addEventListener("change", (event) => setLanguage(event.target.value, { persist: true }));
       els.activityTitleInput.addEventListener("input", () => applyActivityTitle(els.activityTitleInput.value));
+      els.activityTitleInput.addEventListener("change", () => void persistWheelConfig());
       els.themeClearBtn.addEventListener("click", () => applyTheme(defaultConfig.defaultTheme || "default", { persist: true }));
       els.displayOnlyAsDrawnInput.addEventListener("change", () => {
         state.displayOnlyAsDrawn = els.displayOnlyAsDrawnInput.checked;
         drawWheel();
+        void persistWheelConfig();
       });
       els.generateBtn.addEventListener("click", generateWheel);
       els.startBtn.addEventListener("click", startDraw);
@@ -3282,6 +3546,10 @@ Erin</code>
       els.shuffleBtn.addEventListener("click", shuffleNames);
       els.clearBtn.addEventListener("click", clearNames);
       els.fileInput.addEventListener("change", (event) => importNamesFromFile(event.target.files[0]));
+      els.exportConfigBtn.addEventListener("click", exportWheelConfig);
+      els.importConfigBtn.addEventListener("click", () => els.configFileInput.click());
+      els.resetConfigBtn.addEventListener("click", restoreDefaultWheelConfig);
+      els.configFileInput.addEventListener("change", (event) => importWheelConfig(event.target.files[0]));
       els.closeWinnerBtn.addEventListener("click", () => els.winnerModal.classList.remove("show"));
       els.winnerModal.addEventListener("click", (event) => {
         if (event.target === els.winnerModal) els.winnerModal.classList.remove("show");
@@ -3310,21 +3578,26 @@ Erin</code>
       });
     }
 
-    function init() {
+    async function init() {
       renderThemeCards();
       restoreSavedLanguage();
       renderLanguageOptions();
       applyUIText();
       toggleConfigPanel(false);
       loadDefaultConfig();
+      const savedConfig = applyStoredConfig(await loadSavedWheelConfig());
       bindEvents();
       resizeFxCanvases();
       animateBackgroundParticles();
       generateWheel();
-      restoreSavedTheme();
+      if (savedConfig && savedConfig.defaultTheme && themeMap[savedConfig.defaultTheme]) {
+        applyTheme(savedConfig.defaultTheme, { persist: true });
+      } else {
+        restoreSavedTheme();
+      }
     }
 
-    init();
+    void init();
   </script>
 </body>
 </html>

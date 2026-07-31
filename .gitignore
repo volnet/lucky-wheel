@@ -12,6 +12,7 @@ Thumbs.db
 *.log
 tmp/
 temp/
+dist/
 
 # Personal configuration overrides
 # Copy config/local-config.example.js to local-config.js and edit freely.

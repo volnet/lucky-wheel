@@ -311,6 +311,36 @@ Files are named `lucky-draw_YYYYMMDD_HHMMSS.csv`.
 └── README.md
 ```
 
+## Chrome and Edge extension
+
+The repository also builds a Manifest V3 extension while keeping `index.html` available as a standalone offline page. Both versions share the same wheel implementation.
+
+Build both store packages on Windows:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-extension.ps1 -Version 1.0.0
+```
+
+The build creates an unpacked test directory plus two ZIP files:
+
+```text
+dist/
+├── extension-package/
+├── lucky-wheel-chrome-v1.0.0.zip
+└── lucky-wheel-edge-v1.0.0.zip
+```
+
+Load `dist/extension-package` from `chrome://extensions` or `edge://extensions` with developer mode enabled. Clicking the toolbar icon opens the wheel in a full browser tab.
+
+The extension requests only the `storage` permission. It does not request access to websites, browsing history, cookies, accounts or the clipboard. Settings are stored locally with `chrome.storage.local`. Configuration JSON exports may contain participant names and should be treated as private files.
+
+Store privacy statements:
+
+- `privacy/privacy-policy-en.md`
+- `privacy/privacy-policy-zh.md`
+
+The Manifest V3 launcher hosts the shared offline page in a sandbox. The sandbox cannot access extension APIs; a small launcher validates messages from the wheel and performs local storage operations.
+
 ## License
 
 MIT. See `LICENSE` (add one if you publish the repo) or substitute your own.
