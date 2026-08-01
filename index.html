@@ -1395,8 +1395,24 @@ Erin</code>
 
   <div class="screen-reader" aria-live="polite" id="liveRegion"></div>
 
-  <script src="config/default-config.js"></script>
+  <script src="config/default-config.js?v=__LUCKY_WHEEL_BUILD_VERSION__"></script>
+  <script>
+    // Preserve the shipped defaults before loading the optional local file.
+    // Older private configs sometimes used LUCKY_WHEEL_DEFAULT_CONFIG by
+    // mistake; the compatibility block below can then recover both layers.
+    window.LUCKY_WHEEL_BASE_CONFIG = window.LUCKY_WHEEL_DEFAULT_CONFIG;
+  </script>
   <script src="config/local-config.js" onerror="this.remove()"></script>
+  <script>
+    if (
+      !window.LUCKY_WHEEL_LOCAL_CONFIG
+      && window.LUCKY_WHEEL_BASE_CONFIG
+      && window.LUCKY_WHEEL_DEFAULT_CONFIG !== window.LUCKY_WHEEL_BASE_CONFIG
+    ) {
+      window.LUCKY_WHEEL_LOCAL_CONFIG = window.LUCKY_WHEEL_DEFAULT_CONFIG;
+      window.LUCKY_WHEEL_DEFAULT_CONFIG = window.LUCKY_WHEEL_BASE_CONFIG;
+    }
+  </script>
   <script>
     "use strict";
 
@@ -1737,8 +1753,7 @@ Erin</code>
     }
 
     function restoreSavedLanguage() {
-      const savedLanguage = getLocalPreference("luckyWheelLanguage");
-      currentLanguage = getSupportedLanguage(savedLanguage || defaultConfig.defaultLanguage);
+      currentLanguage = getSupportedLanguage(defaultConfig.defaultLanguage);
       uiText = uiTextPacks[currentLanguage];
     }
 
@@ -1746,7 +1761,6 @@ Erin</code>
       currentLanguage = getSupportedLanguage(language);
       uiText = uiTextPacks[currentLanguage];
       els.languageSelect.value = currentLanguage;
-      if (options.persist) setLocalPreference("luckyWheelLanguage", currentLanguage);
       applyUIText();
       applyActivityTitle(els.activityTitleInput.value);
       updateUI();
@@ -1886,7 +1900,16 @@ Erin</code>
     }
 
     const wheelConfigStorageKey = "luckyWheelConfig";
-    const wheelConfigSchemaVersion = 1;
+    const wheelConfigSchemaVersion = 2;
+    const wheelConfigFields = [
+      "activityTitle",
+      "defaultLanguage",
+      "defaultTheme",
+      "schemes",
+      "names",
+      "displayOnlyNames",
+      "displayOnlyAsDrawn"
+    ];
 
     function isExtensionHosted() {
       return window.parent !== window;
@@ -1946,20 +1969,45 @@ Erin</code>
       });
     }
 
-    function sanitizeStoredConfig(value) {
+    function sanitizeConfigFields(value, preserveMissing = false) {
       if (!isPlainObject(value)) return null;
       const cleanArray = (items) => Array.isArray(items)
         ? items.map((item) => String(item).trim()).filter(Boolean).slice(0, 200)
         : [];
+      const clean = {};
+      const assign = (key, sanitizer) => {
+        if (!preserveMissing || Object.prototype.hasOwnProperty.call(value, key)) {
+          clean[key] = sanitizer(value[key]);
+        }
+      };
+      assign("activityTitle", (item) => typeof item === "string" ? item.slice(0, 200) : "");
+      assign("defaultLanguage", (item) => typeof item === "string" ? item.slice(0, 20) : "");
+      assign("defaultTheme", (item) => typeof item === "string" ? item.slice(0, 100) : "");
+      assign("schemes", cleanArray);
+      assign("names", cleanArray);
+      assign("displayOnlyNames", cleanArray);
+      assign("displayOnlyAsDrawn", (item) => item !== false);
+      return clean;
+    }
+
+    function sanitizeStoredConfig(value) {
+      if (!isPlainObject(value)) return null;
+      if (value.schemaVersion === wheelConfigSchemaVersion && isPlainObject(value.overrides)) {
+        return {
+          schemaVersion: wheelConfigSchemaVersion,
+          defaultConfigFingerprint: typeof value.defaultConfigFingerprint === "string"
+            ? value.defaultConfigFingerprint.slice(0, 100)
+            : "",
+          overrides: sanitizeConfigFields(value.overrides, true) || {}
+        };
+      }
+
+      // Schema v1 stored a complete snapshot. Treat each field as an explicit
+      // override during the one-time migration so no user-entered names are lost.
       return {
         schemaVersion: wheelConfigSchemaVersion,
-        activityTitle: typeof value.activityTitle === "string" ? value.activityTitle.slice(0, 200) : "",
-        defaultLanguage: typeof value.defaultLanguage === "string" ? value.defaultLanguage.slice(0, 20) : "",
-        defaultTheme: typeof value.defaultTheme === "string" ? value.defaultTheme.slice(0, 100) : "",
-        schemes: cleanArray(value.schemes),
-        names: cleanArray(value.names),
-        displayOnlyNames: cleanArray(value.displayOnlyNames),
-        displayOnlyAsDrawn: value.displayOnlyAsDrawn !== false
+        defaultConfigFingerprint: "legacy-v1",
+        overrides: sanitizeConfigFields(value, true) || {}
       };
     }
 
@@ -1970,7 +2018,6 @@ Erin</code>
 
     function getWheelConfigSnapshot() {
       return {
-        schemaVersion: wheelConfigSchemaVersion,
         activityTitle: els.activityTitleInput.value.trim(),
         defaultLanguage: currentLanguage,
         defaultTheme: getCurrentThemeId(),
@@ -1981,16 +2028,60 @@ Erin</code>
       };
     }
 
+    function getDefaultConfigSnapshot() {
+      return sanitizeConfigFields({
+        activityTitle: defaultConfig.activityTitle,
+        defaultLanguage: defaultConfig.defaultLanguage,
+        defaultTheme: defaultConfig.defaultTheme,
+        schemes: defaultConfig.schemes,
+        names: defaultConfig.names,
+        displayOnlyNames: defaultConfig.displayOnlyNames,
+        displayOnlyAsDrawn: defaultConfig.displayOnlyAsDrawn
+      });
+    }
+
+    function valuesEqual(left, right) {
+      return JSON.stringify(left) === JSON.stringify(right);
+    }
+
+    function getDefaultConfigFingerprint() {
+      const source = JSON.stringify(defaultConfig);
+      let hash = 2166136261;
+      for (let index = 0; index < source.length; index += 1) {
+        hash ^= source.charCodeAt(index);
+        hash = Math.imul(hash, 16777619);
+      }
+      return `fnv1a-${(hash >>> 0).toString(16).padStart(8, "0")}`;
+    }
+
+    function getConfigOverrides() {
+      const current = getWheelConfigSnapshot();
+      const defaults = getDefaultConfigSnapshot();
+      return Object.fromEntries(wheelConfigFields
+        .filter((field) => !valuesEqual(current[field], defaults[field]))
+        .map((field) => [field, current[field]]));
+    }
+
     function applyStoredConfig(config) {
       const clean = sanitizeStoredConfig(config);
       if (!clean) return false;
-      if (clean.activityTitle) els.activityTitleInput.value = clean.activityTitle;
-      if (clean.schemes.length) els.schemeInput.value = clean.schemes.join("\n");
-      els.nameInput.value = clean.names.join("\n");
-      els.displayOnlyInput.value = clean.displayOnlyNames.join("\n");
-      els.displayOnlyAsDrawnInput.checked = clean.displayOnlyAsDrawn;
-      if (clean.defaultLanguage) setLanguage(clean.defaultLanguage, { persist: true });
-      return clean;
+      const currentFingerprint = getDefaultConfigFingerprint();
+      const defaultConfigChanged = clean.defaultConfigFingerprint !== currentFingerprint;
+      document.documentElement.dataset.defaultConfigChanged = String(defaultConfigChanged);
+      const overrides = clean.overrides;
+      if (Object.prototype.hasOwnProperty.call(overrides, "activityTitle")) els.activityTitleInput.value = overrides.activityTitle;
+      if (Object.prototype.hasOwnProperty.call(overrides, "schemes")) els.schemeInput.value = overrides.schemes.join("\n");
+      if (Object.prototype.hasOwnProperty.call(overrides, "names")) els.nameInput.value = overrides.names.join("\n");
+      if (Object.prototype.hasOwnProperty.call(overrides, "displayOnlyNames")) els.displayOnlyInput.value = overrides.displayOnlyNames.join("\n");
+      if (Object.prototype.hasOwnProperty.call(overrides, "displayOnlyAsDrawn")) els.displayOnlyAsDrawnInput.checked = overrides.displayOnlyAsDrawn;
+      if (overrides.defaultLanguage) setLanguage(overrides.defaultLanguage);
+      return {
+        ...getDefaultConfigSnapshot(),
+        ...overrides,
+        schemaVersion: clean.schemaVersion,
+        defaultConfigFingerprint: clean.defaultConfigFingerprint,
+        defaultConfigChanged
+      };
     }
 
     async function loadSavedWheelConfig() {
@@ -2007,7 +2098,11 @@ Erin</code>
     }
 
     async function persistWheelConfig() {
-      const config = getWheelConfigSnapshot();
+      const config = {
+        schemaVersion: wheelConfigSchemaVersion,
+        defaultConfigFingerprint: getDefaultConfigFingerprint(),
+        overrides: getConfigOverrides()
+      };
       try {
         if (isExtensionHosted()) {
           await requestExtensionStorage("save-config", { config });
@@ -2025,6 +2120,8 @@ Erin</code>
           await requestExtensionStorage("clear-config");
         } else {
           localStorage.removeItem(wheelConfigStorageKey);
+          localStorage.removeItem("luckyWheelLanguage");
+          localStorage.removeItem("luckyWheelTheme");
         }
       } catch (error) {
         // Restoring the visible defaults is still useful if storage is unavailable.
@@ -2049,18 +2146,16 @@ Erin</code>
       if (!requestedTheme.url) {
         setThemeImage("");
         markActiveTheme(themeId);
-        if (options.persist) setLocalPreference("luckyWheelTheme", themeId);
         setMessage(themeId === "default" ? uiText.themeResetMessage : `${uiText.themeSwitchedPrefix}${requestedTheme.name}`, "success");
         if (options.persist) void persistWheelConfig();
         return;
       }
 
       const theme = requestedTheme;
+      markActiveTheme(themeId);
       const img = new Image();
       img.onload = () => {
         setThemeImage(theme.url);
-        markActiveTheme(themeId);
-        if (options.persist) setLocalPreference("luckyWheelTheme", themeId);
         setMessage(`${uiText.themeSwitchedPrefix}${theme.name}`, "success");
         if (options.persist) void persistWheelConfig();
       };
@@ -2068,7 +2163,6 @@ Erin</code>
         applyThemeSkin(themeMap.default);
         setThemeImage("");
         markActiveTheme("default");
-        if (options.persist) setLocalPreference("luckyWheelTheme", "default");
         setMessage(`${uiText.themeImageMissingPrefix}${theme.url}${uiText.themeImageMissingSuffix}`, "error");
         if (options.persist) void persistWheelConfig();
       };
@@ -2076,10 +2170,7 @@ Erin</code>
     }
 
     function restoreSavedTheme() {
-      const savedTheme = getLocalPreference("luckyWheelTheme");
-      if (savedTheme && savedTheme !== "default" && themeMap[savedTheme]) {
-        applyTheme(savedTheme);
-      } else if (defaultConfig.defaultTheme && themeMap[defaultConfig.defaultTheme]) {
+      if (defaultConfig.defaultTheme && themeMap[defaultConfig.defaultTheme]) {
         applyTheme(defaultConfig.defaultTheme);
       }
     }
@@ -2157,6 +2248,14 @@ Erin</code>
       return normalizeLineList(raw, 200);
     }
 
+    function shuffleArrayInPlace(items) {
+      for (let i = items.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+      }
+      return items;
+    }
+
     function validateNames(names) {
       if (names.length < 2) return uiText.validationMinNames;
       if (names.length > 200) return uiText.validationMaxNames;
@@ -2180,7 +2279,7 @@ Erin</code>
       els.displayOnlyAsDrawnInput.checked = state.displayOnlyAsDrawn;
     }
 
-    function generateWheel() {
+    function generateWheel(options = {}) {
       const eligibleNames = normalizeNameList(els.nameInput.value);
       const displayOnlyNames = normalizeNameList(els.displayOnlyInput.value);
       const displayOnlyKeys = new Set(displayOnlyNames.map(getNameKey));
@@ -2195,6 +2294,7 @@ Erin</code>
         return false;
       }
       state.names = names;
+      if (options.shuffleDisplayOrder) shuffleArrayInPlace(state.names);
       state.displayOnlyNames = displayOnlyKeys;
       state.displayOnlyAsDrawn = els.displayOnlyAsDrawnInput.checked;
       state.schemes = schemes;
@@ -2211,7 +2311,7 @@ Erin</code>
       updateUI();
       drawWheel();
       setMessage(`${uiText.generatedPrefix} ${names.length} ${uiText.generatedNamesSuffix}${schemes.length > 1 ? `${uiText.generatedSchemesJoin} ${schemes.length} ${uiText.generatedSchemesSuffix}` : ""}。`, "success");
-      void persistWheelConfig();
+      if (options.persist !== false) void persistWheelConfig();
       return true;
     }
 
@@ -2219,7 +2319,10 @@ Erin</code>
       const total = state.names.length;
       const drawnCount = state.drawn.size;
       const eligibleTotal = state.names.filter((name) => !state.displayOnlyNames.has(getNameKey(name))).length;
-      const remaining = Math.max(0, eligibleTotal - drawnCount);
+      const drawableRemaining = Math.max(0, eligibleTotal - drawnCount);
+      const remaining = state.displayOnlyAsDrawn
+        ? drawableRemaining
+        : Math.max(0, total - drawnCount);
       els.totalCount.textContent = total;
       els.remainingCount.textContent = remaining;
       els.drawnCount.textContent = drawnCount;
@@ -2227,7 +2330,7 @@ Erin</code>
         ? state.schemes[0]
         : `${state.schemes.length || 0} ${uiText.multipleSchemesSuffix}`;
       els.drawnMini.textContent = drawnCount ? `${uiText.drawnCompletedPrefix} ${drawnCount} ${uiText.drawnCompletedSuffix}` : uiText.drawnWaiting;
-      els.startBtn.disabled = state.isSpinning || total < 2 || remaining === 0;
+      els.startBtn.disabled = state.isSpinning || total < 2 || drawableRemaining === 0;
       els.hubButton.disabled = els.startBtn.disabled;
       els.hubText.innerHTML = state.isSpinning ? lineBreakText(uiText.hubDrawing) : lineBreakText(uiText.hubStart);
       els.exportBtn.disabled = state.history.length === 0;
@@ -2871,18 +2974,16 @@ Erin</code>
 
     function shuffleNames() {
       if (state.isSpinning) return;
-      const names = normalizeNameList(els.nameInput.value);
-      const error = validateNames(names);
-      if (error) {
-        setMessage(error, "error");
-        return;
-      }
-      for (let i = names.length - 1; i > 0; i -= 1) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [names[i], names[j]] = [names[j], names[i]];
-      }
-      els.nameInput.value = names.join("\n");
-      generateWheel();
+      if (!generateWheel({ persist: false })) return;
+
+      // Shuffle the displayed union, not only eligible candidates. Membership
+      // in displayOnlyNames remains unchanged, so these entries move around the
+      // wheel while staying permanently ineligible to win.
+      shuffleArrayInPlace(state.names);
+      state.nameRotation = -Math.PI / 2;
+      updateUI();
+      drawWheel();
+      void persistWheelConfig();
       setMessage(uiText.shuffleDone, "success");
     }
 
@@ -2963,10 +3064,10 @@ Erin</code>
         const parsed = JSON.parse(await file.text());
         const config = sanitizeStoredConfig(parsed);
         if (!config) throw new Error("Invalid configuration");
-        applyStoredConfig(config);
-        if (!generateWheel()) throw new Error("Configuration validation failed");
-        if (config.defaultTheme && themeMap[config.defaultTheme]) {
-          applyTheme(config.defaultTheme, { persist: true });
+        const effectiveConfig = applyStoredConfig(config);
+        if (!generateWheel({ persist: false })) throw new Error("Configuration validation failed");
+        if (effectiveConfig.defaultTheme && themeMap[effectiveConfig.defaultTheme]) {
+          applyTheme(effectiveConfig.defaultTheme);
         }
         await persistWheelConfig();
         setMessage(uiText.configImported, "success");
@@ -2981,9 +3082,10 @@ Erin</code>
       if (state.isSpinning) return;
       await clearSavedWheelConfig();
       loadDefaultConfig();
-      setLanguage(defaultConfig.defaultLanguage || "en", { persist: true });
-      generateWheel();
-      applyTheme(defaultConfig.defaultTheme || "default", { persist: true });
+      setLanguage(defaultConfig.defaultLanguage || "en");
+      generateWheel({ persist: false, shuffleDisplayOrder: true });
+      applyTheme(defaultConfig.defaultTheme || "default");
+      await persistWheelConfig();
       setMessage(uiText.configReset, "success");
     }
 
@@ -3534,6 +3636,7 @@ Erin</code>
       els.themeClearBtn.addEventListener("click", () => applyTheme(defaultConfig.defaultTheme || "default", { persist: true }));
       els.displayOnlyAsDrawnInput.addEventListener("change", () => {
         state.displayOnlyAsDrawn = els.displayOnlyAsDrawnInput.checked;
+        updateUI();
         drawWheel();
         void persistWheelConfig();
       });
@@ -3589,12 +3692,13 @@ Erin</code>
       bindEvents();
       resizeFxCanvases();
       animateBackgroundParticles();
-      generateWheel();
+      generateWheel({ persist: false, shuffleDisplayOrder: true });
       if (savedConfig && savedConfig.defaultTheme && themeMap[savedConfig.defaultTheme]) {
-        applyTheme(savedConfig.defaultTheme, { persist: true });
+        applyTheme(savedConfig.defaultTheme);
       } else {
         restoreSavedTheme();
       }
+      await persistWheelConfig();
     }
 
     void init();

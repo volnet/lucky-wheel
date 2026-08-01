@@ -5,13 +5,13 @@
   <a href="#中文说明">中文</a>
 </p>
 
-A single-file HTML lucky-draw wheel for live events. Drop it on a thumb drive, double-click `index.html`, and you have a self-contained, offline-capable draw machine with a dual-ring spinner, bilingual interface text, voice announcements, confetti and side-fireworks.
+An offline-first HTML lucky-draw wheel for live events. Drop the offline package on a thumb drive, double-click `index.html`, and you have a self-contained draw machine with a dual-ring spinner, bilingual interface text, voice announcements, confetti and side-fireworks.
 
 Built for stage presentations, raffles, classroom picks, team standups, ice-breakers, and any moment that needs a fair, visible, and dramatic random pick.
 
 ## Highlights
 
-- **One file, no build.** All HTML, CSS and JavaScript are inlined in `index.html`.
+- **Static files, no server.** Open `index.html` directly; no installation, build step, backend or local server is required.
 - **Offline by default.** No CDN, no network calls, no telemetry. Web Audio synthesizes every sound effect on the fly.
 - **Dual-ring wheel.** Inner ring spins clockwise through candidates; outer ring spins counter-clockwise through proposals. Add one proposal and the outer ring auto-hides.
 - **2–200 displayed names.** The union of eligible and display-only names forms the wheel, with at least one eligible candidate.
@@ -30,7 +30,7 @@ Built for stage presentations, raffles, classroom picks, team standups, ice-brea
 1. Double-click `index.html`.
 2. Open the **Settings** panel on the right.
 3. Choose **English** or **中文** in the **Language** section.
-4. Type a list of candidates (one per line; 5 to 200 entries).
+4. Enter at least one eligible candidate; the combined eligible and display-only list must contain 2 to 200 displayed names.
 5. Optionally type a list of proposals.
 6. Click **Build Wheel**.
 7. Press <kbd>Space</kbd> or click **Start Draw**.
@@ -112,6 +112,24 @@ window.LUCKY_WHEEL_LOCAL_CONFIG = {
 
 This means publishing the repo never exposes your event title, candidate names, internal project names or any other personal data — even by accident.
 
+### Saved UI overrides
+
+The browser stores only field-level UI overrides (`schemaVersion: 2`) instead of
+a complete copy of the effective configuration. On startup, the latest file
+defaults are loaded first and the fields explicitly changed in the UI are
+applied afterward. Updating `default-config.js` therefore updates every field
+the user has not customized. **Restore Defaults** removes all UI overrides.
+The saved default-configuration fingerprint is compared at startup so a changed
+file baseline is detected before the stored overrides are rewritten.
+Legacy schema v1 snapshots are migrated conservatively as overrides so existing
+user-entered names are not lost.
+
+**Restore Defaults** clears application-owned settings and immediately reapplies
+the configuration already loaded from the package.
+Browsers do not allow a page to erase their global HTTP/file cache. Release
+builds therefore use a versioned static URL for `default-config.js`; increasing
+the package version forces a fresh read without affecting other sites.
+
 ## Configuration reference
 
 `default-config.js` and `local-config.js` share the same shape:
@@ -126,7 +144,7 @@ This means publishing the repo never exposes your event title, candidate names, 
 | `names`         | `string[]` | Eligible candidates, one per entry. The union with `displayOnlyNames` supports 2–200 displayed names. |
 | `uiText`        | `object`   | Optional language packs, for example `{ en: {...}, zh: {...} }`. Override only the labels you need. |
 | `displayOnlyNames` | `string[]` | Names shown on the wheel but excluded from every draw. The wheel displays the union of `names` and this list. |
-| `displayOnlyAsDrawn` | `boolean` | If `true`, display-only names look already selected; if `false`, they look like normal candidates. |
+| `displayOnlyAsDrawn` | `boolean` | If `true`, display-only names look already selected and are excluded from the remaining count; if `false`, they look like normal candidates and stay included in the remaining count. They are never eligible to win in either mode. |
 
 Example:
 
@@ -315,22 +333,26 @@ Files are named `lucky-draw_YYYYMMDD_HHMMSS.csv`.
 
 The repository also builds a Manifest V3 extension while keeping `index.html` available as a standalone offline page. Both versions share the same wheel implementation.
 
-Build both store packages on Windows:
+Build both browser-store packages and the standalone offline HTML package on Windows:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-extension.ps1 -Version 1.0.0
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-release.ps1 -Version 1.0.0
 ```
 
-The build creates an unpacked test directory plus two ZIP files:
+The build creates two unpacked staging directories plus three ZIP files:
 
 ```text
 dist/
 ├── extension-package/
+├── offline-package/
 ├── lucky-wheel-chrome-v1.0.0.zip
-└── lucky-wheel-edge-v1.0.0.zip
+├── lucky-wheel-edge-v1.0.0.zip
+└── lucky-wheel-offline-html-v1.0.0.zip
 ```
 
 Load `dist/extension-package` from `chrome://extensions` or `edge://extensions` with developer mode enabled. Clicking the toolbar icon opens the wheel in a full browser tab.
+
+Extract `lucky-wheel-offline-html-v1.0.0.zip` and open `index.html` for the standalone offline version. The archive includes the shared theme assets, default configuration, local configuration example, README and privacy statements.
 
 The extension requests only the `storage` permission. It does not request access to websites, browsing history, cookies, accounts or the clipboard. Settings are stored locally with `chrome.storage.local`. Configuration JSON exports may contain participant names and should be treated as private files.
 

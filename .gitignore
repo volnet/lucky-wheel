@@ -13,6 +13,7 @@ Thumbs.db
 tmp/
 temp/
 dist/
+store-assets/source/
 
 # Personal configuration overrides
 # Copy config/local-config.example.js to local-config.js and edit freely.

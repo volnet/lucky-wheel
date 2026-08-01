@@ -12,7 +12,7 @@
  *  - schemes       : string[]  - one proposal per entry
  *  - names         : string[]  - eligible candidates; the displayed union supports 2-200 names
  *  - displayOnlyNames : string[] - shown on the wheel but excluded from draws; merged with names
- *  - displayOnlyAsDrawn : boolean - render display-only names as already selected
+ *  - displayOnlyAsDrawn : boolean - render display-only names as selected and exclude them from remaining count
  *  - uiText        : object    - language packs, e.g. { en: {...}, zh: {...} }
  *
  * The defaults below use neutral English demo data so the open-source build
